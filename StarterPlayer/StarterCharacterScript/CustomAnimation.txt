@@ -1,0 +1,29 @@
+-- Script Path: game:GetService("StarterPlayer").StarterCharacterScripts.CustomAnimations
+-- Took 1.43s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local v1 = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local AnimationPlay = ReplicatedStorage.Remotes.AnimationPlay
+local Animator = v1:WaitForChild("Humanoid"):WaitForChild("Animator")
+local Animation = Instance.new("Animation")
+
+Animation.AnimationId = "rbxassetid://913376220"
+
+local v2 = Animator:LoadAnimation(Animation)
+AnimationPlay.OnClientEvent:Connect(function(p1, p2, p3) -- line: 20
+    -- upvalues: v2 (copy)
+    if p2 == "start" then
+        if p1 == "road" then
+            v2.Looped = true
+            v2.Priority = Enum.AnimationPriority.Action4
+            v2:Play()
+            v2:AdjustSpeed(p3)
+        end
+    elseif p1 == "road" then
+        v2:Stop()
+    end
+end)

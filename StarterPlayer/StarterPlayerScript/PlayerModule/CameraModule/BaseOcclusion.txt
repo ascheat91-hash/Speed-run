@@ -1,0 +1,60 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.CameraModule.BaseOcclusion
+-- Took 0.64s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local t1 = {}
+
+t1.__index = t1
+
+local t2 = {}
+
+function t2.__call(_, ...) -- line: 10
+    -- upvalues: t1 (copy)
+    return t1.new(...)
+end
+
+setmetatable(t1, t2)
+
+function t1.new() -- line: 15
+    -- upvalues: t1 (copy)
+    local t3 = {}
+    return (setmetatable(t3, t1))
+end
+
+local function CharacterAdded(_, _, _) -- line: 21
+end
+
+t1.CharacterAdded = CharacterAdded
+
+local function CharacterRemoving(_, _, _) -- line: 25
+end
+
+t1.CharacterRemoving = CharacterRemoving
+
+local function OnCameraSubjectChanged(_, _) -- line: 28
+end
+
+t1.OnCameraSubjectChanged = OnCameraSubjectChanged
+
+local function GetOcclusionMode(_) -- line: 32
+    warn("BaseOcclusion GetOcclusionMode must be overridden by derived classes")
+    return nil
+end
+
+t1.GetOcclusionMode = GetOcclusionMode
+
+local function Enable(_, _) -- line: 38
+    warn("BaseOcclusion Enable must be overridden by derived classes")
+end
+
+t1.Enable = Enable
+
+local function Update(_, _, p15, p16) -- line: 42
+    warn("BaseOcclusion Update must be overridden by derived classes")
+    return p15, p16
+end
+
+t1.Update = Update
+return t1

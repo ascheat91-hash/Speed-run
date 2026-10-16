@@ -1,0 +1,76 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.ControlModule.AvatarAbilitiesInterface
+-- Took 0.66s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local CommonUtils = script.Parent.Parent:WaitForChild("CommonUtils")
+
+if require(CommonUtils:WaitForChild("FlagUtil")).getUserFlag("UserAllowAbilityControls") then
+    local Players = game:GetService("Players")
+    local t1 = {}
+    local v1, v2
+    local BindableEvent = Instance.new("BindableEvent")
+    local v3
+    local v4 = false
+
+    local function characterAdded(p1) -- line: 16
+        -- upvalues: v1 (ref), v2 (ref), v3 (ref), BindableEvent (copy)
+        v1 = nil
+        v2 = nil
+        if v3 then
+            local v5 = v3
+            v5:Disconnect()
+            v3 = nil
+        end
+        if p1 then
+            v1 = p1:FindFirstChild("AbilityManagerActor")
+            v2 = p1:FindFirstChildOfClass("Humanoid")
+            while not v2 do
+                p1.ChildAdded:wait()
+                v2 = p1:FindFirstChildOfClass("Humanoid")
+            end
+            BindableEvent:Fire()
+            v3 = v2:GetPropertyChangedSignal("EvaluateStateMachine"):Connect(function() -- line: 33
+                -- upvalues: BindableEvent (copy)
+                BindableEvent:Fire()
+            end)
+        end
+    end
+
+    function t1.isEnabled() -- line: 54
+        -- upvalues: v1 (ref), v2 (ref), v4 (ref), Players (copy), characterAdded (copy)
+        if not v4 then
+            v4 = true
+            local LocalPlayer = Players.LocalPlayer
+            if LocalPlayer then
+                LocalPlayer.characterAdded:Connect(characterAdded)
+                if LocalPlayer.Character then
+                    characterAdded(LocalPlayer.Character)
+                end
+            end
+        end
+        if v1 == nil then
+            return false
+        end
+        local v6 = v2
+        return v6 and not v2.EvaluateStateMachine
+    end
+
+    function t1.GetEnabledChangedSignal() -- line: 59
+        -- upvalues: v4 (ref), Players (copy), BindableEvent (copy), characterAdded (copy)
+        if not v4 then
+            v4 = true
+            local LocalPlayer = Players.LocalPlayer
+            if LocalPlayer then
+                LocalPlayer.characterAdded:Connect(characterAdded)
+                if LocalPlayer.Character then
+                    characterAdded(LocalPlayer.Character)
+                end
+            end
+        end
+        return BindableEvent.Event
+    end
+
+    return t1
+end

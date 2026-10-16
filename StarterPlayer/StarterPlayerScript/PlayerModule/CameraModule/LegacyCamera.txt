@@ -1,0 +1,97 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.CameraModule.LegacyCamera
+-- Took 0.81s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+Vector2.new()
+require(script.Parent:WaitForChild("CameraUtils"))
+local v1 = require(script.Parent:WaitForChild("CameraInput"))
+local Players = game:GetService("Players")
+local v2 = require(script.Parent:WaitForChild("BaseCamera"))
+local t1 = {}
+local v3 = setmetatable(t1, v2)
+
+v3.__index = v3
+
+function v3.new() -- line: 21
+    -- upvalues: v2 (copy), v3 (copy)
+    local v4 = v2.new()
+    local v5 = setmetatable(v4, v3)
+    v5.cameraType = Enum.CameraType.Fixed
+    v5.lastUpdate = tick()
+    v5.lastDistanceToSubject = nil
+    return v5
+end
+
+local function GetModuleName(_) -- line: 31
+    return "LegacyCamera"
+end
+
+v3.GetModuleName = GetModuleName
+
+function v3.SetCameraToSubjectDistance(p2, p3) -- line: 36
+    -- upvalues: v2 (copy)
+    return v2.SetCameraToSubjectDistance(p2, p3)
+end
+
+function v3.Update(p4, p5) -- line: 40
+    -- upvalues: v1 (copy), Players (copy)
+    if p4.cameraType then
+        local v6 = tick()
+        local v7 = v6 - p4.lastUpdate
+        local CurrentCamera = workspace.CurrentCamera
+        local _CFrame = CurrentCamera.CFrame
+        local Focus = CurrentCamera.Focus
+        local LocalPlayer = Players.LocalPlayer
+        local v8 = v1.getRotation(p5)
+        if p4.lastUpdate == nil or v7 > 1 then
+            p4.lastDistanceToSubject = nil
+        end
+        local v9 = p4:GetSubjectPosition()
+        if p4.cameraType == Enum.CameraType.Fixed then
+            if v9 and LocalPlayer and CurrentCamera then
+                local v10 = p4:GetCameraToSubjectDistance()
+                local v11 = p4:CalculateNewLookVectorFromArg(nil, v8)
+                Focus = CurrentCamera.Focus
+                _CFrame = CFrame.new(CurrentCamera.CFrame.p, CurrentCamera.CFrame.p + v10 * v11)
+            end
+        elseif p4.cameraType == Enum.CameraType.Attach then
+            local v12 = p4:GetSubjectCFrame()
+            local v13 = CurrentCamera.CFrame:ToEulerAnglesYXZ()
+            local _, v14 = v12:ToEulerAnglesYXZ()
+            local v15 = v13 - v8.Y
+            local v16 = math.clamp(v15, -1.3962634015954636, 1.3962634015954636)
+            Focus = CFrame.new(v12.p) * CFrame.fromEulerAnglesYXZ(v16, v14, 0)
+            _CFrame = Focus * CFrame.new(0, 0, p4:StepZoom())
+        elseif p4.cameraType == Enum.CameraType.Watch then
+            if v9 and LocalPlayer and CurrentCamera then
+                if v9 == CurrentCamera.CFrame.p then
+                    warn("Camera cannot watch subject in same position as itself")
+                    return CurrentCamera.CFrame, CurrentCamera.Focus
+                end
+                local v17 = p4:GetHumanoid()
+                local unit
+                if v17 and v17.RootPart then
+                    local v18 = v9 - CurrentCamera.CFrame.p
+                    unit = v18.unit
+                    if p4.lastDistanceToSubject and p4.lastDistanceToSubject == p4:GetCameraToSubjectDistance() then
+                        p4:SetCameraToSubjectDistance(v18.magnitude)
+                    end
+                end
+                local v19 = p4:GetCameraToSubjectDistance()
+                local v20 = p4:CalculateNewLookVectorFromArg(unit, v8)
+                Focus = CFrame.new(v9)
+                _CFrame = CFrame.new(v9 - v19 * v20, v9)
+                p4.lastDistanceToSubject = v19
+            end
+        else
+            return CurrentCamera.CFrame, CurrentCamera.Focus
+        end
+        p4.lastUpdate = v6
+        return _CFrame, Focus
+    end
+    return nil, nil
+end
+
+return v3

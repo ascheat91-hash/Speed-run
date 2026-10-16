@@ -1,0 +1,88 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.CameraModule.CameraToggleStateController
+-- Took 0.79s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+game:GetService("Players")
+game:GetService("UserInputService")
+UserSettings():GetService("UserGameSettings")
+local v1 = require(script.Parent:WaitForChild("CameraInput"))
+local v2 = require(script.Parent:WaitForChild("CameraUI"))
+local v3 = require(script.Parent:WaitForChild("CameraUtils"))
+local v4 = false
+local v5 = tick()
+local v6 = false
+local v7 = false
+local v8 = false
+v2.setCameraModeToastEnabled(false)
+return function(p1) -- line: 20
+    -- upvalues: v4 (ref), v5 (ref), v6 (ref), v7 (ref), v8 (ref), v1 (copy), v2 (copy), v3 (copy)
+    local v9 = v1.getTogglePan()
+    if p1 and v9 ~= v4 then
+        v6 = true
+    end
+    local v10, v11
+    if v4 == v9 then
+        if tick() - v5 > 3 then
+            if v9 then
+                local v12 = tick()
+                local v13 = v5
+                v10 = not not (v12 - v13 < 3)
+            else
+                v10 = v9
+            end
+            v11 = false
+        else
+            v11 = true
+        end
+    else
+        if v9 then
+            local v14 = tick()
+            local v15 = v5
+            v10 = not not (v14 - v15 < 3)
+        else
+            v10 = v9
+        end
+        v11 = false
+    end
+    if not v11 then
+        v2.setCameraModeToastOpen(v10)
+        if v9 then
+            v6 = false
+        end
+        v5 = tick()
+        v4 = v9
+    end
+    if p1 ~= v8 then
+        if p1 then
+            v7 = v1.getTogglePan()
+            v1.setTogglePan(true)
+        elseif not v6 then
+            v1.setTogglePan(v7)
+        end
+    end
+    if p1 then
+        if v1.getTogglePan() then
+            v3.setMouseIconOverride("rbxasset://textures/Cursors/CrossMouseIcon.png")
+            v3.setMouseBehaviorOverride(Enum.MouseBehavior.LockCenter)
+        else
+            v3.restoreMouseIcon()
+            v3.restoreMouseBehavior()
+        end
+        v3.setRotationTypeOverride(Enum.RotationType.CameraRelative)
+    elseif v1.getTogglePan() then
+        v3.setMouseIconOverride("rbxasset://textures/Cursors/CrossMouseIcon.png")
+        v3.setMouseBehaviorOverride(Enum.MouseBehavior.LockCenter)
+        v3.setRotationTypeOverride(Enum.RotationType.MovementRelative)
+    elseif v1.getHoldPan() then
+        v3.restoreMouseIcon()
+        v3.setMouseBehaviorOverride(Enum.MouseBehavior.LockCurrentPosition)
+        v3.setRotationTypeOverride(Enum.RotationType.MovementRelative)
+    else
+        v3.restoreMouseIcon()
+        v3.restoreMouseBehavior()
+        v3.restoreRotationType()
+    end
+    v8 = p1
+end

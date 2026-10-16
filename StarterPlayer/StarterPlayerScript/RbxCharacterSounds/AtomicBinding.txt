@@ -1,0 +1,282 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.RbxCharacterSounds.AtomicBinding
+-- Took 1.46s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local function parsePath(p1) -- line: 4
+    local v1 = string.split(p1, "/")
+    local v2 = #v1
+
+    for i = v2, 1, -1 do
+        if v1[i] == "" then
+            table.remove(v1, i)
+        end
+    end
+
+    return v1
+end
+
+local function isManifestResolved(p2, p3) -- line: 14
+    local n1 = 0
+
+    for _ in pairs(p2) do
+        n1 += 1
+    end
+
+    local v3 = n1 <= p3
+    assert(v3, n1)
+    return n1 == p3
+end
+
+local function unbindNodeDescend(p4, p5) -- line: 24
+    -- upvalues: unbindNodeDescend (copy)
+    if p4.instance ~= nil then
+        p4.instance = nil
+        local connections = p4.connections
+        if connections then
+            for _, v4 in ipairs(connections) do
+                v4:Disconnect()
+            end
+
+            table.clear(connections)
+        end
+        if p5 and p4.alias then
+            p5[p4.alias] = nil
+        end
+        local children = p4.children
+        if children then
+            for _, v5 in pairs(children) do
+                unbindNodeDescend(v5, p5)
+            end
+        end
+    end
+end
+
+local t1 = {}
+
+t1.__index = t1
+
+function t1.new(p6, p7) -- line: 54
+    -- upvalues: parsePath (copy), t1 (copy)
+    local t2 = {}
+    local t3 = {}
+    local t4 = {}
+    local t5 = {}
+    local t6 = {}
+    local n2 = 1
+
+    for v6, v7 in pairs(p6) do
+        t6[v6] = parsePath(v7)
+        n2 += 1
+    end
+
+    local t7 = {
+        _boundFn = p7,
+        _parsedManifest = t6,
+        _manifestSizeTarget = n2,
+        _dtorMap = t2,
+        _connections = t3,
+        _rootInstToRootNode = t4,
+        _rootInstToManifest = t5
+    }
+    return (setmetatable(t7, t1))
+end
+
+local function _startBoundFn(p8, p9, p10) -- line: 80
+    local _boundFn = p8._boundFn
+    local _dtorMap = p8._dtorMap
+    local v8 = _dtorMap[p9]
+    if v8 then
+        v8()
+        _dtorMap[p9] = nil
+    end
+    local v9 = _boundFn(p10)
+    if v9 then
+        _dtorMap[p9] = v9
+    end
+end
+
+t1._startBoundFn = _startBoundFn
+
+local function _stopBoundFn(p11, p12) -- line: 96
+    local _dtorMap = p11._dtorMap
+    local v10 = _dtorMap[p12]
+    if v10 then
+        v10()
+        _dtorMap[p12] = nil
+    end
+end
+
+t1._stopBoundFn = _stopBoundFn
+
+function t1.bindRoot(p13, p14) -- line: 106
+    -- upvalues: unbindNodeDescend (copy)
+    debug.profilebegin("AtomicBinding:BindRoot")
+    local _parsedManifest = p13._parsedManifest
+    local _rootInstToRootNode = p13._rootInstToRootNode
+    local _rootInstToManifest = p13._rootInstToManifest
+    local _manifestSizeTarget = p13._manifestSizeTarget
+    local v11 = _rootInstToManifest[p14] == nil
+    assert(v11)
+    local t8 = {}
+    _rootInstToManifest[p14] = t8
+    debug.profilebegin("BuildTree")
+    local t9 = {
+        alias = "root",
+        instance = p14
+    }
+    if next(_parsedManifest) then
+        t9.children = {}
+        t9.connections = {}
+    end
+    _rootInstToRootNode[p14] = t9
+
+    for v12, v13 in pairs(_parsedManifest) do
+        local v14 = t9
+
+        for v15, v16 in ipairs(v13) do
+            local v17 = v15 == #v13
+            local v18 = v14.children[v16] or {}
+            if v17 then
+                if v18.alias ~= nil then
+                    error("Multiple aliases assigned to one instance")
+                end
+                v18.alias = v12
+            else
+                v18.children = v18.children or {}
+                v18.connections = v18.connections or {}
+            end
+            v14.children[v16] = v18
+            v14 = v18
+        end
+    end
+
+    debug.profileend()
+    local processNode
+
+    local function processNode2(p15) -- line: 160
+        -- upvalues: p13 (copy), p14 (copy), _manifestSizeTarget (copy), t8 (copy), processNode (ref), unbindNodeDescend (copy)
+        local instance = p15.instance
+        local v19 = assert(instance)
+        local children = p15.children
+        local alias = p15.alias
+        local v20 = not children
+        if alias then
+            t8[alias] = v19
+        end
+        if v20 then
+            local n3 = 0
+
+            for _ in pairs(t8) do
+                n3 += 1
+            end
+
+            local v21 = n3 <= _manifestSizeTarget
+            assert(v21, n3)
+            if n3 == _manifestSizeTarget then
+                p13:_startBoundFn(p14, t8)
+            end
+        else
+            local function processAddChild(p16) -- line: 172
+                -- upvalues: children (copy), processNode (ref)
+                local Name = p16.Name
+                local v22 = children[Name]
+                if v22 and v22.instance == nil then
+                    v22.instance = p16
+                    processNode(v22)
+                end
+            end
+
+            local function processDeleteChild(p17) -- line: 183
+                -- upvalues: v19 (copy), children (copy), p13 (copy), p14 (copy), t8 (copy), processNode (ref), unbindNodeDescend (copy)
+                local Name = p17.Name
+                local v23 = children[Name]
+                if v23 and v23.instance == p17 then
+                    p13:_stopBoundFn(p14)
+                    unbindNodeDescend(v23, t8)
+                    local v24 = v23.instance == nil
+                    assert(v24)
+                    local v25 = v19:FindFirstChild(Name)
+                    if v25 then
+                        local Name = v25.Name
+                        local v26 = children[Name]
+                        if v26 then
+                            if v26.instance ~= nil then
+                                return
+                            end
+                            v26.instance = v25
+                            processNode(v26)
+                        end
+                    end
+                end
+            end
+
+            for _, v27 in ipairs(v19:GetChildren()) do
+                local v28 = children[v27.Name]
+                if v28 and v28.instance == nil then
+                    v28.instance = v27
+                    processNode(v28)
+                end
+            end
+
+            local connections = p15.connections
+            local ChildAdded = v19.ChildAdded
+            table.insert(connections, ChildAdded:Connect(processAddChild))
+            local connections2 = p15.connections
+            local ChildRemoved = v19.ChildRemoved
+            table.insert(connections2, ChildRemoved:Connect(processDeleteChild))
+        end
+    end
+
+    processNode = processNode2
+    debug.profilebegin("ResolveTree")
+    processNode2(t9)
+    debug.profileend()
+    debug.profileend()
+end
+
+function t1.unbindRoot(p18, p19) -- line: 236
+    -- upvalues: unbindNodeDescend (copy)
+    local _rootInstToRootNode = p18._rootInstToRootNode
+    local _rootInstToManifest = p18._rootInstToManifest
+    p18:_stopBoundFn(p19)
+    local v29 = _rootInstToRootNode[p19]
+    if v29 then
+        local v30 = _rootInstToManifest[p19]
+        local v31 = assert(v30)
+        unbindNodeDescend(v29, v31)
+        _rootInstToRootNode[p19] = nil
+    end
+    _rootInstToManifest[p19] = nil
+end
+
+function t1.destroy(p20) -- line: 252
+    -- upvalues: unbindNodeDescend (copy)
+    debug.profilebegin("AtomicBinding:destroy")
+
+    for _, v32 in pairs(p20._dtorMap) do
+        v32:destroy()
+    end
+
+    table.clear(p20._dtorMap)
+
+    for _, v33 in ipairs(p20._connections) do
+        v33:Disconnect()
+    end
+
+    table.clear(p20._connections)
+    local _rootInstToManifest = p20._rootInstToManifest
+
+    for v34, v35 in pairs(p20._rootInstToRootNode) do
+        local v36 = _rootInstToManifest[v34]
+        local v37 = assert(v36)
+        unbindNodeDescend(v35, v37)
+    end
+
+    table.clear(p20._rootInstToManifest)
+    table.clear(p20._rootInstToRootNode)
+    debug.profileend()
+end
+
+return t1

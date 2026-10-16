@@ -1,0 +1,235 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.ControlModule.Gamepad
+-- Took 1.03s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local UserInputService = game:GetService("UserInputService")
+local ContextActionService = game:GetService("ContextActionService")
+local CommonUtils = script.Parent.Parent:WaitForChild("CommonUtils")
+local UserPlayerScriptsSupportTVRemoteKeycodes = require(CommonUtils:WaitForChild("FlagUtil")).getUserFlag("UserPlayerScriptsSupportTVRemoteKeycodes")
+local None = Enum.UserInputType.None
+local v1 = require(script.Parent:WaitForChild("BaseCharacterController"))
+local t1 = {}
+local v2 = setmetatable(t1, v1)
+
+v2.__index = v2
+
+function v2.new(p1) -- line: 26
+    -- upvalues: None (copy), v1 (copy), v2 (copy)
+    local v3 = v1.new()
+    local v4 = setmetatable(v3, v2)
+    v4.CONTROL_ACTION_PRIORITY = p1
+    v4.forwardValue = 0
+    v4.backwardValue = 0
+    v4.leftValue = 0
+    v4.rightValue = 0
+    v4.thumbstickVector = Vector3.new(0, 0, 0)
+    v4.activeGamepad = None
+    v4.gamepadConnectedConn = nil
+    v4.gamepadDisconnectedConn = nil
+    return v4
+end
+
+function v2.Enable(p2, p3) -- line: 43
+    -- upvalues: None (copy)
+    if p3 ~= p2.enabled then
+        p2.forwardValue = 0
+        p2.backwardValue = 0
+        p2.leftValue = 0
+        p2.rightValue = 0
+        p2.thumbstickVector = Vector3.new(0, 0, 0)
+        p2.moveVector = Vector3.new(0, 0, 0)
+        p2.isJumping = false
+        if p3 then
+            p2.activeGamepad = p2:GetHighestPriorityGamepad()
+            if p2.activeGamepad == None then
+                return false
+            end
+            p2:BindContextActions()
+            p2:ConnectGamepadConnectionListeners()
+        else
+            p2:UnbindContextActions()
+            p2:DisconnectGamepadConnectionListeners()
+            p2.activeGamepad = None
+        end
+        p2.enabled = p3
+    end
+    return true
+end
+
+function v2.GetHighestPriorityGamepad(_) -- line: 80
+    -- upvalues: UserInputService (copy), None (copy)
+    local v5 = UserInputService:GetConnectedGamepads()
+    local v6 = None
+
+    for _, v7 in pairs(v5) do
+        if v7.Value < v6.Value then
+            v6 = v7
+        end
+    end
+
+    return v6
+end
+
+local function UpdateMovement(p5) -- line: 91
+    local thumbstickVector = p5.thumbstickVector
+    local v8 = p5.forwardValue + p5.backwardValue
+    p5.moveVector = thumbstickVector + Vector3.new(0, 0, v8)
+end
+
+v2.UpdateMovement = UpdateMovement
+
+function v2.BindContextActions(p6) -- line: 95
+    -- upvalues: ContextActionService (copy), UserPlayerScriptsSupportTVRemoteKeycodes (copy), None (copy)
+    if p6.activeGamepad == None then
+        return false
+    end
+
+    local function v9(_, p8, _) -- line: 102
+        -- upvalues: p6 (copy)
+        p6.isJumping = p8 == Enum.UserInputState.Begin
+        return Enum.ContextActionResult.Sink
+    end
+
+    local function v10(_, p11, p12) -- line: 107
+        -- upvalues: p6 (copy), UserPlayerScriptsSupportTVRemoteKeycodes (copy)
+        if p11 == Enum.UserInputState.Cancel then
+            if UserPlayerScriptsSupportTVRemoteKeycodes then
+                p6.thumbstickVector = Vector3.new(0, 0, 0)
+                p6:UpdateMovement()
+            else
+                p6.moveVector = Vector3.new(0, 0, 0)
+            end
+            return Enum.ContextActionResult.Sink
+        end
+        if p6.activeGamepad == p12.UserInputType then
+            if p12.KeyCode == Enum.KeyCode.Thumbstick1 then
+                if UserPlayerScriptsSupportTVRemoteKeycodes then
+                    if p12.Position.magnitude > 0.2 then
+                        local X = p12.Position.X
+                        local v11 = -p12.Position.Y
+                        p6.thumbstickVector = Vector3.new(X, 0, v11)
+                    else
+                        p6.thumbstickVector = Vector3.new(0, 0, 0)
+                    end
+                    p6:UpdateMovement()
+                elseif p12.Position.magnitude > 0.2 then
+                    local X = p12.Position.X
+                    local v12 = -p12.Position.Y
+                    p6.moveVector = Vector3.new(X, 0, v12)
+                else
+                    p6.moveVector = Vector3.new(0, 0, 0)
+                end
+                return Enum.ContextActionResult.Sink
+            end
+        else
+            return Enum.ContextActionResult.Pass
+        end
+    end
+
+    local function v13(_, p14, p15) -- line: 141
+        -- upvalues: p6 (copy)
+        if p14 == Enum.UserInputState.Cancel then
+            p6.forwardValue = 0
+            p6.backwardValue = 0
+        else
+            local v14 = if p15.Position.magnitude > 0.2 then p15.Position.Z else 0
+            if p15.KeyCode == Enum.KeyCode.ButtonUp then
+                p6.forwardValue = -v14
+            elseif p15.KeyCode == Enum.KeyCode.ButtonDown then
+                p6.backwardValue = v14
+            end
+        end
+        p6:UpdateMovement()
+        return Enum.ContextActionResult.Sink
+    end
+
+    ContextActionService:BindActivate(p6.activeGamepad, Enum.KeyCode.ButtonR2)
+    if UserPlayerScriptsSupportTVRemoteKeycodes then
+        ContextActionService:BindActionAtPriority("jumpAction", v9, false, p6.CONTROL_ACTION_PRIORITY, Enum.KeyCode.ButtonA, Enum.KeyCode.ButtonCenter)
+        ContextActionService:BindActionAtPriority("moveDirectionalButton", v13, false, p6.CONTROL_ACTION_PRIORITY, Enum.KeyCode.ButtonUp, Enum.KeyCode.ButtonDown)
+    else
+        ContextActionService:BindActionAtPriority("jumpAction", v9, false, p6.CONTROL_ACTION_PRIORITY, Enum.KeyCode.ButtonA)
+    end
+    ContextActionService:BindActionAtPriority("moveThumbstick", v10, false, p6.CONTROL_ACTION_PRIORITY, Enum.KeyCode.Thumbstick1)
+    return true
+end
+
+function v2.UnbindContextActions(p16) -- line: 180
+    -- upvalues: ContextActionService (copy), UserPlayerScriptsSupportTVRemoteKeycodes (copy), None (copy)
+    if p16.activeGamepad ~= None then
+        ContextActionService:UnbindActivate(p16.activeGamepad, Enum.KeyCode.ButtonR2)
+    end
+    if UserPlayerScriptsSupportTVRemoteKeycodes then
+        ContextActionService:UnbindAction("moveDirectionalButton")
+    end
+    ContextActionService:UnbindAction("moveThumbstick")
+    ContextActionService:UnbindAction("jumpAction")
+end
+
+function v2.OnNewGamepadConnected(p17) -- line: 191
+    -- upvalues: None (copy)
+    local v15 = p17:GetHighestPriorityGamepad()
+    if v15 ~= p17.activeGamepad then
+        if v15 == None then
+            warn("Gamepad:OnNewGamepadConnected found no connected gamepads")
+            p17:UnbindContextActions()
+        else
+            if p17.activeGamepad ~= None then
+                p17:UnbindContextActions()
+            end
+            p17.activeGamepad = v15
+            p17:BindContextActions()
+        end
+    end
+end
+
+function v2.OnCurrentGamepadDisconnected(p18) -- line: 218
+    -- upvalues: ContextActionService (copy), None (copy)
+    if p18.activeGamepad ~= None then
+        ContextActionService:UnbindActivate(p18.activeGamepad, Enum.KeyCode.ButtonR2)
+    end
+    local v16 = p18:GetHighestPriorityGamepad()
+    if p18.activeGamepad ~= None and v16 == p18.activeGamepad then
+        warn("Gamepad:OnCurrentGamepadDisconnected found the supposedly disconnected gamepad in connectedGamepads.")
+        p18:UnbindContextActions()
+        p18.activeGamepad = None
+    elseif v16 == None then
+        p18:UnbindContextActions()
+        p18.activeGamepad = None
+    else
+        p18.activeGamepad = v16
+        ContextActionService:BindActivate(p18.activeGamepad, Enum.KeyCode.ButtonR2)
+    end
+end
+
+function v2.ConnectGamepadConnectionListeners(p19) -- line: 243
+    -- upvalues: UserInputService (copy)
+    local GamepadConnected = UserInputService.GamepadConnected
+    p19.gamepadConnectedConn = GamepadConnected:Connect(function(_) -- line: 244
+        -- upvalues: p19 (copy)
+        p19:OnNewGamepadConnected()
+    end)
+    local GamepadDisconnected = UserInputService.GamepadDisconnected
+    p19.gamepadDisconnectedConn = GamepadDisconnected:Connect(function(p21) -- line: 248
+        -- upvalues: p19 (copy)
+        if p19.activeGamepad == p21 then
+            p19:OnCurrentGamepadDisconnected()
+        end
+    end)
+end
+
+local function DisconnectGamepadConnectionListeners(p22) -- line: 255
+    if p22.gamepadConnectedConn then
+        p22.gamepadConnectedConn:Disconnect()
+        p22.gamepadConnectedConn = nil
+    end
+    if p22.gamepadDisconnectedConn then
+        p22.gamepadDisconnectedConn:Disconnect()
+        p22.gamepadDisconnectedConn = nil
+    end
+end
+
+v2.DisconnectGamepadConnectionListeners = DisconnectGamepadConnectionListeners
+return v2

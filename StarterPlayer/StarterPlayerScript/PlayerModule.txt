@@ -1,0 +1,37 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule
+-- Took 1.06s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local t1 = {}
+
+t1.__index = t1
+
+function t1.new() -- line: 12
+    -- upvalues: t1 (copy)
+    local t2 = {}
+    local v1 = setmetatable(t2, t1)
+    v1.cameras = require(script:WaitForChild("CameraModule"))
+    v1.controls = require(script:WaitForChild("ControlModule"))
+    return v1
+end
+
+local function GetCameras(p1) -- line: 19
+    return p1.cameras
+end
+
+t1.GetCameras = GetCameras
+
+local function GetControls(p2) -- line: 23
+    return p2.controls
+end
+
+t1.GetControls = GetControls
+
+local function GetClickToMoveController(p3) -- line: 27
+    return p3.controls:GetClickToMoveController()
+end
+
+t1.GetClickToMoveController = GetClickToMoveController
+return t1.new()

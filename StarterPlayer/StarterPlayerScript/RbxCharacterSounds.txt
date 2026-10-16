@@ -1,0 +1,617 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.RbxCharacterSounds
+-- Took 1.49s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
+local v1 = require(script:WaitForChild("AtomicBinding"))
+
+local function loadFlag(p1) -- line: 12
+    local function v2() -- line: 13
+        -- upvalues: p1 (copy)
+        return UserSettings():IsUserFeatureEnabled(p1)
+    end
+
+    local v3, v4 = pcall(v2)
+    return v3 and v4
+end
+
+local v5 = "UserSoundsUseRelativeVelocity2"
+
+local function v6() -- line: 13
+    -- upvalues: v5 (copy)
+    return UserSettings():IsUserFeatureEnabled(v5)
+end
+
+local v7, v8 = pcall(v6)
+local v9 = v7 and v8
+local v10 = "UserNewCharacterSoundsApi3"
+
+local function v11() -- line: 13
+    -- upvalues: v10 (copy)
+    return UserSettings():IsUserFeatureEnabled(v10)
+end
+
+local v12, v13 = pcall(v11)
+local v14 = v12 and v13
+local v15 = "UserFixCharSoundsEmitters"
+
+local function v16() -- line: 13
+    -- upvalues: v15 (copy)
+    return UserSettings():IsUserFeatureEnabled(v15)
+end
+
+local v17, v18 = pcall(v16)
+local v19 = v17 and v18
+local v20 = "UserFixCharSoundsEmitterRootPart"
+
+local function v21() -- line: 13
+    -- upvalues: v20 (copy)
+    return UserSettings():IsUserFeatureEnabled(v20)
+end
+
+local v22, v23 = pcall(v21)
+local v24 = v22 and v23
+local t1 = {
+    Climbing = {
+        SoundId = "rbxasset://sounds/action_footsteps_plastic.mp3",
+        Looped = true
+    },
+    Died = { SoundId = "rbxasset://sounds/uuhhh.mp3" },
+    FreeFalling = {
+        SoundId = "rbxasset://sounds/action_falling.ogg",
+        Looped = true
+    },
+    GettingUp = { SoundId = "rbxasset://sounds/action_get_up.mp3" },
+    Jumping = { SoundId = "rbxasset://sounds/action_jump.mp3" },
+    Landing = { SoundId = "rbxasset://sounds/action_jump_land.mp3" },
+    Running = {
+        SoundId = "rbxasset://sounds/action_footsteps_plastic.mp3",
+        Looped = true,
+        Pitch = 1.85
+    },
+    Splash = { SoundId = "rbxasset://sounds/impact_water.mp3" },
+    Swimming = {
+        SoundId = "rbxasset://sounds/action_swim.mp3",
+        Looped = true,
+        Pitch = 1.6
+    }
+}
+local t2 = {
+    Climbing = {
+        AssetId = "rbxasset://sounds/action_footsteps_plastic.mp3",
+        Looping = true
+    },
+    Died = { AssetId = "rbxasset://sounds/uuhhh.mp3" },
+    FreeFalling = {
+        AssetId = "rbxasset://sounds/action_falling.ogg",
+        Looping = true
+    },
+    GettingUp = { AssetId = "rbxasset://sounds/action_get_up.mp3" },
+    Jumping = { AssetId = "rbxasset://sounds/action_jump.mp3" },
+    Landing = { AssetId = "rbxasset://sounds/action_jump_land.mp3" },
+    Running = {
+        AssetId = "rbxasset://sounds/action_footsteps_plastic.mp3",
+        Looping = true,
+        PlaybackSpeed = 1.85
+    },
+    Splash = { AssetId = "rbxasset://sounds/impact_water.mp3" },
+    Swimming = {
+        AssetId = "rbxasset://sounds/action_swim.mp3",
+        Looping = true,
+        PlaybackSpeed = 1.6
+    }
+}
+
+local function map(p2, p3, p4, p5, p6) -- line: 97
+    return (p2 - p3) * (p6 - p5) / (p4 - p3) + p5
+end
+
+local function getRelativeVelocity(p7, p8) -- line: 101
+    if p7 then
+        local ActiveController = p7.ActiveController
+        local v25, v26
+        if ActiveController then
+            if p7.ActiveController:IsA("GroundController") then
+                local GroundSensor = p7.GroundSensor
+                if GroundSensor then
+                    v25 = GroundSensor
+                    v26 = true
+                else
+                    v26 = false
+                end
+            else
+                v26 = false
+            end
+        else
+            v25 = ActiveController
+            v26 = true
+        end
+        if not v26 then
+            v25 = p7.ActiveController:IsA("ClimbController") and p7.ClimbSensor
+        end
+        if not (v25 and v25.SensedPart) then
+            return p8
+        end
+        return p8 - v25.SensedPart:GetVelocityAtPosition(p7.RootPart.Position)
+    end
+    return p8
+end
+
+local function playSound(p9, p10) -- line: 118
+    -- upvalues: v14 (copy)
+    if not p10 then
+        p9.TimePosition = 0
+    end
+    if v14 and p9:IsA("AudioPlayer") then
+        p9:Play()
+    else
+        p9.Playing = true
+    end
+end
+
+local function stopSound(p11) -- line: 129
+    -- upvalues: v14 (copy)
+    if not (v14 and p11:IsA("AudioPlayer")) then
+        p11.Playing = false
+    else
+        p11:Stop()
+    end
+end
+
+local function playSoundIf(p12, p13) -- line: 137
+    -- upvalues: v14 (copy)
+    if not (v14 and p12:IsA("AudioPlayer")) then
+        p12.Playing = p13
+    elseif not p12.IsPlaying or p13 then
+        if not p12.IsPlaying and p13 then
+            p12:Play()
+        end
+    else
+        p12:Stop()
+    end
+end
+
+local function setSoundLooped(p14, p15) -- line: 149
+    -- upvalues: v14 (copy)
+    if not (v14 and p14:IsA("AudioPlayer")) then
+        p14.Looped = p15
+    else
+        p14.Looping = p15
+    end
+end
+
+local function shallowCopy(p16) -- line: 157
+    local t3 = {}
+
+    for v27, v28 in pairs(p16) do
+        t3[v27] = v28
+    end
+
+    return t3
+end
+
+local function initializeSoundSystem(p17) -- line: 165
+    -- upvalues: Players (copy), RunService (copy), SoundService (copy), v9 (copy), v14 (copy), v19 (copy), v24 (copy), t1 (copy), t2 (copy), getRelativeVelocity (copy)
+    local humanoid = p17.humanoid
+    local rootPart = p17.rootPart
+    local v29, v30
+    if v9 then
+        v30 = humanoid.Parent:FindFirstChild("ControllerManager")
+    end
+    local t4 = {}
+    if v14 and SoundService.CharacterSoundsUseNewApi == Enum.RolloutState.Enabled then
+        local v31, Character
+        if v19 then
+            if v24 then
+                v31 = humanoid.RootPart or humanoid.Parent
+            else
+                Character, v31 = nil, humanoid.RootPart
+            end
+        else
+            Character = Players.LocalPlayer.Character
+        end
+        local t5 = {}
+        local n1 = 5
+        while n1 < 150 do
+            t5[n1] = 5 / n1
+            n1 *= 1.25
+        end
+        t5[150] = 0
+        local v32
+        if v19 then
+            v32 = Instance.new("AudioEmitter", v31)
+        else
+            v32 = Instance.new("AudioEmitter", Character)
+        end
+        v29 = v32
+        v32.Name = "RbxCharacterSoundsEmitter"
+        v32:SetDistanceAttenuation(t5)
+
+        for v33, v34 in pairs(t2) do
+            local AudioPlayer = Instance.new("AudioPlayer")
+            local Wire = Instance.new("Wire")
+            AudioPlayer.Name = v33
+            Wire.Name = v33 .. "Wire"
+            AudioPlayer.Archivable = false
+            AudioPlayer.Volume = 0.65
+
+            for v35, v36 in pairs(v34) do
+                AudioPlayer[v35] = v36
+            end
+
+            AudioPlayer.Parent = rootPart
+            Wire.Parent = AudioPlayer
+            Wire.SourceInstance = AudioPlayer
+            Wire.TargetInstance = v32
+            t4[v33] = AudioPlayer
+        end
+    else
+        for v37, v38 in pairs(t1) do
+            local Sound = Instance.new("Sound")
+            Sound.Name = v37
+            Sound.Archivable = false
+            Sound.RollOffMinDistance = 5
+            Sound.RollOffMaxDistance = 150
+            Sound.Volume = 0.65
+
+            for v39, v40 in pairs(v38) do
+                Sound[v39] = v40
+            end
+
+            Sound.Parent = rootPart
+            t4[v37] = Sound
+        end
+    end
+    local t6 = {}
+
+    local function stopPlayingLoopedSounds(p18) -- line: 241
+        -- upvalues: t6 (copy), v14 (copy)
+        local v41 = p18 or nil
+        local _pairs = pairs
+        local t7 = {}
+
+        for v42, v43 in pairs(t6) do
+            t7[v42] = v43
+        end
+
+        for v44 in _pairs(t7) do
+            if v44 ~= v41 then
+                if v14 and v44:IsA("AudioPlayer") then
+                    v44:Stop()
+                else
+                    v44.Playing = false
+                end
+                t6[v44] = nil
+            end
+        end
+    end
+
+    local t8 = {}
+    local FallingDown = Enum.HumanoidStateType.FallingDown
+
+    t8[FallingDown] = function() -- line: 253
+        -- upvalues: stopPlayingLoopedSounds (copy)
+        stopPlayingLoopedSounds()
+    end
+
+    local GettingUp = Enum.HumanoidStateType.GettingUp
+
+    t8[GettingUp] = function() -- line: 257
+        -- upvalues: t4 (copy), stopPlayingLoopedSounds (copy), v14 (copy)
+        stopPlayingLoopedSounds()
+        local GettingUp = t4.GettingUp
+        GettingUp.TimePosition = 0
+        if not (v14 and GettingUp:IsA("AudioPlayer")) then
+            GettingUp.Playing = true
+        else
+            GettingUp:Play()
+        end
+    end
+
+    local Jumping = Enum.HumanoidStateType.Jumping
+
+    t8[Jumping] = function() -- line: 262
+        -- upvalues: t4 (copy), stopPlayingLoopedSounds (copy), v14 (copy)
+        stopPlayingLoopedSounds()
+        local Jumping = t4.Jumping
+        Jumping.TimePosition = 0
+        if not (v14 and Jumping:IsA("AudioPlayer")) then
+            Jumping.Playing = true
+        else
+            Jumping:Play()
+        end
+    end
+
+    local Swimming = Enum.HumanoidStateType.Swimming
+
+    t8[Swimming] = function() -- line: 267
+        -- upvalues: rootPart (copy), t4 (copy), t6 (copy), stopPlayingLoopedSounds (copy), v14 (copy)
+        local Y = rootPart.AssemblyLinearVelocity.Y
+        local v45 = math.abs(Y)
+        if v45 > 0.1 then
+            local Splash = t4.Splash
+            local v46 = (v45 - 100) * 0.72 / 250 + 0.28
+            Splash.Volume = math.clamp(v46, 0, 1)
+            local Splash2 = t4.Splash
+            Splash2.TimePosition = 0
+            if not (v14 and Splash2:IsA("AudioPlayer")) then
+                Splash2.Playing = true
+            else
+                Splash2:Play()
+            end
+        end
+        stopPlayingLoopedSounds(t4.Swimming)
+        local Swimming = t4.Swimming
+        if not (v14 and Swimming:IsA("AudioPlayer")) then
+            Swimming.Playing = true
+        else
+            Swimming:Play()
+        end
+        t6[t4.Swimming] = true
+    end
+
+    local Freefall = Enum.HumanoidStateType.Freefall
+
+    t8[Freefall] = function() -- line: 278
+        -- upvalues: t4 (copy), t6 (copy), stopPlayingLoopedSounds (copy), v14 (copy)
+        t4.FreeFalling.Volume = 0
+        stopPlayingLoopedSounds(t4.FreeFalling)
+        local FreeFalling = t4.FreeFalling
+        if not (v14 and FreeFalling:IsA("AudioPlayer")) then
+            FreeFalling.Looped = true
+        else
+            FreeFalling.Looping = true
+        end
+        if t4.FreeFalling:IsA("Sound") then
+            t4.FreeFalling.PlaybackRegionsEnabled = true
+        end
+        t4.FreeFalling.LoopRegion = NumberRange.new(2, 9)
+        local FreeFalling2 = t4.FreeFalling
+        FreeFalling2.TimePosition = 0
+        if not (v14 and FreeFalling2:IsA("AudioPlayer")) then
+            FreeFalling2.Playing = true
+        else
+            FreeFalling2:Play()
+        end
+        t6[t4.FreeFalling] = true
+    end
+
+    local Landed = Enum.HumanoidStateType.Landed
+
+    t8[Landed] = function() -- line: 292
+        -- upvalues: rootPart (copy), t4 (copy), stopPlayingLoopedSounds (copy), v14 (copy)
+        stopPlayingLoopedSounds()
+        local Y = rootPart.AssemblyLinearVelocity.Y
+        local v47 = math.abs(Y)
+        if v47 > 75 then
+            local Landing = t4.Landing
+            local v48 = (v47 - 50) * 1 / 50 + 0
+            Landing.Volume = math.clamp(v48, 0, 1)
+            local Landing2 = t4.Landing
+            Landing2.TimePosition = 0
+            if v14 and Landing2:IsA("AudioPlayer") then
+                Landing2:Play()
+            else
+                Landing2.Playing = true
+            end
+        end
+    end
+
+    local Running = Enum.HumanoidStateType.Running
+
+    t8[Running] = function() -- line: 301
+        -- upvalues: t4 (copy), t6 (copy), stopPlayingLoopedSounds (copy), v14 (copy)
+        stopPlayingLoopedSounds(t4.Running)
+        local Running = t4.Running
+        if not (v14 and Running:IsA("AudioPlayer")) then
+            Running.Playing = true
+        else
+            Running:Play()
+        end
+        t6[t4.Running] = true
+    end
+
+    local Climbing = Enum.HumanoidStateType.Climbing
+
+    t8[Climbing] = function() -- line: 307
+        -- upvalues: v30 (ref), rootPart (copy), t4 (copy), t6 (copy), stopPlayingLoopedSounds (copy), v9 (copy), v14 (copy), getRelativeVelocity (copy)
+        local Climbing = t4.Climbing
+        local AssemblyLinearVelocity = rootPart.AssemblyLinearVelocity
+        if v9 then
+            AssemblyLinearVelocity = getRelativeVelocity(v30, AssemblyLinearVelocity)
+        end
+        local Y = AssemblyLinearVelocity.Y
+        if math.abs(Y) > 0.1 then
+            if v14 and Climbing:IsA("AudioPlayer") then
+                Climbing:Play()
+            else
+                Climbing.Playing = true
+            end
+            stopPlayingLoopedSounds(Climbing)
+        else
+            stopPlayingLoopedSounds()
+        end
+        t6[Climbing] = true
+    end
+
+    local Seated = Enum.HumanoidStateType.Seated
+
+    t8[Seated] = function() -- line: 320
+        -- upvalues: stopPlayingLoopedSounds (copy)
+        stopPlayingLoopedSounds()
+    end
+
+    local Dead = Enum.HumanoidStateType.Dead
+
+    t8[Dead] = function() -- line: 324
+        -- upvalues: t4 (copy), stopPlayingLoopedSounds (copy), v14 (copy)
+        stopPlayingLoopedSounds()
+        local Died = t4.Died
+        Died.TimePosition = 0
+        if not (v14 and Died:IsA("AudioPlayer")) then
+            Died.Playing = true
+        else
+            Died:Play()
+        end
+    end
+
+    local t9 = {}
+
+    t9[t4.Climbing] = function(_, p20, p21) -- line: 332
+        -- upvalues: v30 (ref), v9 (copy), v14 (copy), getRelativeVelocity (copy)
+        local v49
+        if v9 then
+            v49 = getRelativeVelocity(v30, p21)
+        else
+            v49 = p21
+        end
+        local v50 = v49.Magnitude > 0.1
+        if not (v14 and p20:IsA("AudioPlayer")) then
+            p20.Playing = v50
+        elseif not p20.IsPlaying or v50 then
+            if not p20.IsPlaying and v50 then
+                p20:Play()
+            end
+        else
+            p20:Stop()
+        end
+    end
+
+    t9[t4.FreeFalling] = function(p22, p23, p24) -- line: 337
+        if p24.Magnitude > 75 then
+            local v51 = p23.Volume + p22 * 0.9
+            p23.Volume = math.clamp(v51, 0, 1)
+        else
+            p23.Volume = 0
+        end
+    end
+
+    local Running2 = t4.Running
+
+    t9[Running2] = function(_, p26, p27) -- line: 345
+        -- upvalues: humanoid (copy), v14 (copy)
+        local v52 = if p27.Magnitude > 0.5 then humanoid.MoveDirection.Magnitude > 0.5 else false
+        if not (v14 and p26:IsA("AudioPlayer")) then
+            p26.Playing = v52
+        elseif not p26.IsPlaying or v52 then
+            if not p26.IsPlaying and v52 then
+                p26:Play()
+            end
+        else
+            p26:Stop()
+        end
+    end
+
+    local t10 = { [Enum.HumanoidStateType.RunningNoPhysics] = Enum.HumanoidStateType.Running }
+    local v53 = t10[humanoid:GetState()]
+    local v54 = v53
+    if not v53 then
+        v54 = humanoid:GetState()
+    end
+    local v55 = v54
+    local v56 = t8[v55]
+    if v56 then
+        v56()
+    end
+    v54 = v55
+    local StateChanged = humanoid.StateChanged
+    local v57 = StateChanged:Connect(function(_, p29) -- line: 369
+        -- upvalues: v54 (ref), t8 (copy), t10 (copy)
+        local v58 = t10[p29] or p29
+        if v58 ~= v54 then
+            local v59 = t8[v58]
+            if v59 then
+                v59()
+            end
+            v54 = v58
+        end
+    end)
+    local Stepped = RunService.Stepped
+    local v60 = Stepped:Connect(function(_, p31) -- line: 377
+        -- upvalues: rootPart (copy), t6 (copy), t9 (copy)
+        for v61 in pairs(t6) do
+            local v62 = t9[v61]
+            if v62 then
+                v62(p31, v61, rootPart.AssemblyLinearVelocity)
+            end
+        end
+    end)
+
+    local function terminate() -- line: 388
+        -- upvalues: v29 (ref), t4 (copy), v57 (copy), v60 (copy), v24 (copy)
+        v57:Disconnect()
+        v60:Disconnect()
+        if v24 and v29 then
+            local v63 = v29
+            v63:Destroy()
+        end
+
+        for _, v64 in pairs(t4) do
+            v64:Destroy()
+        end
+
+        table.clear(t4)
+    end
+
+    return terminate
+end
+
+local v65 = v1.new({
+    humanoid = "Humanoid",
+    rootPart = "HumanoidRootPart"
+}, initializeSoundSystem)
+local t11 = {}
+
+local function characterAdded(p32) -- line: 415
+    -- upvalues: v65 (copy)
+    v65:bindRoot(p32)
+end
+
+local function characterRemoving(p33) -- line: 419
+    -- upvalues: v65 (copy)
+    v65:unbindRoot(p33)
+end
+
+local function playerAdded(p34) -- line: 423
+    -- upvalues: v65 (copy), t11 (copy), characterAdded (copy), characterRemoving (copy)
+    local v66 = t11[p34]
+    if not v66 then
+        v66 = {}
+        t11[p34] = v66
+    end
+    if p34.Character then
+        local Character = p34.Character
+        v65:bindRoot(Character)
+    end
+    local CharacterAdded = p34.CharacterAdded
+    table.insert(v66, CharacterAdded:Connect(characterAdded))
+    local CharacterRemoving = p34.CharacterRemoving
+    table.insert(v66, CharacterRemoving:Connect(characterRemoving))
+end
+
+local function playerRemoving(p35) -- line: 437
+    -- upvalues: v65 (copy), t11 (copy)
+    local v67 = t11[p35]
+    if v67 then
+        for _, v68 in ipairs(v67) do
+            v68:Disconnect()
+        end
+
+        t11[p35] = nil
+    end
+    if p35.Character then
+        local Character = p35.Character
+        v65:unbindRoot(Character)
+    end
+end
+
+for _, v69 in ipairs(Players:GetPlayers()) do
+    task.spawn(playerAdded, v69)
+end
+
+Players.PlayerAdded:Connect(playerAdded)
+Players.PlayerRemoving:Connect(playerRemoving)

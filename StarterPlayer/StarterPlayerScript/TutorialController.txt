@@ -1,0 +1,60 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.TutorialController
+-- Took 0.75s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+local TutorialTarget = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("TutorialTarget")
+local v1
+local Part = Instance.new("Part")
+
+Part.Anchored = true
+Part.CanCollide = false
+Part.Transparency = 1
+Part.Parent = workspace
+
+local Attachment = Instance.new("Attachment")
+
+Attachment.Parent = Part
+
+local Attachment2 = Instance.new("Attachment")
+
+Attachment2.Parent = Part
+
+local v2 = ReplicatedStorage:WaitForChild("Assets"):WaitForChild("Effects"):WaitForChild("TutorialBeam"):Clone()
+local v3 = ReplicatedStorage:WaitForChild("Assets"):WaitForChild("Effects"):WaitForChild("TutorialBeam"):WaitForChild("beam2"):Clone()
+
+v2.Attachment0 = Attachment2
+v2.Attachment1 = Attachment
+v2.Parent = Part
+v3.Attachment0 = Attachment2
+v3.Attachment1 = Attachment
+v3.Parent = Part
+TutorialTarget.OnClientEvent:Connect(function(p1) -- line: 35
+    -- upvalues: v1 (ref), v2 (copy), v3 (copy)
+    v1 = p1
+    if p1 then
+        v2.Enabled = true
+        v3.Enabled = true
+    else
+        v2.Enabled = false
+        v3.Enabled = false
+    end
+end)
+RunService.RenderStepped:Connect(function() -- line: 47
+    -- upvalues: v1 (ref), LocalPlayer (copy), Attachment (copy), Attachment2 (copy)
+    if v1 then
+        local Character = LocalPlayer.Character
+        if Character then
+            local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+            if HumanoidRootPart then
+                Attachment.WorldPosition = HumanoidRootPart.Position
+                Attachment2.WorldPosition = v1
+            end
+        end
+    end
+end)

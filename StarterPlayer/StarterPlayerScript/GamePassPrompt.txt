@@ -1,0 +1,11 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.GamePassPrompt
+-- Took 1.29s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local MarketplaceService = game:GetService("MarketplaceService")
+game:GetService("ReplicatedStorage").Remotes.PromptGamePass.OnClientEvent:Connect(function(p1) -- line: 6
+    -- upvalues: MarketplaceService (copy)
+    MarketplaceService:PromptGamePassPurchase(game.Players.LocalPlayer, p1)
+end)

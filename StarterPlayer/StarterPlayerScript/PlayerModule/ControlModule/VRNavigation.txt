@@ -1,0 +1,567 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.ControlModule.VRNavigation
+-- Took 1.33s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local VRService = game:GetService("VRService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local PathfindingService = game:GetService("PathfindingService")
+local ContextActionService = game:GetService("ContextActionService")
+local StarterGui = game:GetService("StarterGui")
+local CommonUtils = script.Parent.Parent:WaitForChild("CommonUtils")
+local v1 = require(CommonUtils:WaitForChild("FlagUtil"))
+local v2
+local LocalPlayer = Players.LocalPlayer
+local v3 = RaycastParams.new()
+
+v3.FilterType = Enum.RaycastFilterType.Exclude
+
+local UserRaycastUpdateAPI2 = v1.getUserFlag("UserRaycastUpdateAPI2")
+
+local function IsFinite(p1) -- line: 42
+    if p1 == p1 then
+        if p1 == (1/0) then
+            return false
+        end
+        return p1 ~= (-1/0)
+    end
+    return false
+end
+
+local function IsFiniteVector3(p2) -- line: 46
+    local x = p2.x
+    local v4
+    if x == x then
+        if x == (1/0) then
+            v4 = false
+        else
+            v4 = x ~= (-1/0)
+        end
+    else
+        v4 = false
+    end
+    if v4 then
+        local y = p2.y
+        local v5
+        if y == y then
+            if y == (1/0) then
+                v5 = false
+            else
+                v5 = y ~= (-1/0)
+            end
+        else
+            v5 = false
+        end
+        if v5 then
+            local z = p2.z
+            if z == z then
+                if z == (1/0) then
+                    return false
+                end
+                return z ~= (-1/0)
+            end
+            return false
+        end
+        return v5
+    end
+    return v4
+end
+
+local BindableEvent = Instance.new("BindableEvent")
+
+BindableEvent.Name = "MovementUpdate"
+BindableEvent.Parent = script
+coroutine.wrap(function() -- line: 54
+    -- upvalues: v2 (ref)
+    local PathDisplay = script.Parent:WaitForChild("PathDisplay")
+    if PathDisplay then
+        v2 = require(PathDisplay)
+    end
+end)()
+local v6 = require(script.Parent:WaitForChild("BaseCharacterController"))
+local t1 = {}
+local v7 = setmetatable(t1, v6)
+
+v7.__index = v7
+
+function v7.new(p3) -- line: 67
+    -- upvalues: v6 (copy), v7 (copy)
+    local v8 = v6.new()
+    local v9 = setmetatable(v8, v7)
+    v9.CONTROL_ACTION_PRIORITY = p3
+    v9.navigationRequestedConn = nil
+    v9.heartbeatConn = nil
+    v9.currentDestination = nil
+    v9.currentPath = nil
+    v9.currentPoints = nil
+    v9.currentPointIdx = 0
+    v9.expectedTimeToNextPoint = 0
+    v9.timeReachedLastPoint = tick()
+    v9.moving = false
+    v9.isJumpBound = false
+    v9.moveLatch = false
+    v9.userCFrameEnabledConn = nil
+    return v9
+end
+
+function v7.SetLaserPointerMode(_, p5) -- line: 92
+    -- upvalues: StarterGui (copy)
+    local function v10() -- line: 93
+        -- upvalues: p5 (copy), StarterGui (copy)
+        StarterGui:SetCore("VRLaserPointerMode", p5)
+    end
+
+    pcall(v10)
+end
+
+function v7.GetLocalHumanoid(_) -- line: 98
+    -- upvalues: LocalPlayer (copy)
+    local Character = LocalPlayer.Character
+    if Character then
+        for _, v11 in pairs(Character:GetChildren()) do
+            if v11:IsA("Humanoid") then
+                return v11
+            end
+        end
+
+        return nil
+    end
+end
+
+function v7.HasBothHandControllers(_) -- line: 112
+    -- upvalues: VRService (copy)
+    return VRService:GetUserCFrameEnabled(Enum.UserCFrame.RightHand) and VRService:GetUserCFrameEnabled(Enum.UserCFrame.LeftHand)
+end
+
+function v7.HasAnyHandControllers(_) -- line: 116
+    -- upvalues: VRService (copy)
+    return VRService:GetUserCFrameEnabled(Enum.UserCFrame.RightHand) or VRService:GetUserCFrameEnabled(Enum.UserCFrame.LeftHand)
+end
+
+function v7.IsMobileVR(_) -- line: 120
+    -- upvalues: UserInputService (copy)
+    return UserInputService.TouchEnabled
+end
+
+function v7.HasGamepad(_) -- line: 124
+    -- upvalues: UserInputService (copy)
+    return UserInputService.GamepadEnabled
+end
+
+local function ShouldUseNavigationLaser(p11) -- line: 128
+    if p11:IsMobileVR() then
+        return true
+    end
+    if p11:HasBothHandControllers() then
+        return false
+    end
+    if p11:HasAnyHandControllers() then
+        return true
+    end
+    return not p11:HasGamepad()
+end
+
+v7.ShouldUseNavigationLaser = ShouldUseNavigationLaser
+
+function v7.StartFollowingPath(p12, p13) -- line: 150
+    -- upvalues: BindableEvent (copy)
+    currentPath = p13
+    currentPoints = currentPath:GetPointCoordinates()
+    currentPointIdx = 1
+    moving = true
+    timeReachedLastPoint = tick()
+    local v12 = p12:GetLocalHumanoid()
+    if v12 and v12.Torso and #currentPoints >= 1 then
+        expectedTimeToNextPoint = (currentPoints[1] - v12.Torso.Position).magnitude / v12.WalkSpeed
+    end
+    BindableEvent:Fire("targetPoint", p12.currentDestination)
+end
+
+function v7.GoToPoint(p14, p15) -- line: 167
+    -- upvalues: BindableEvent (copy)
+    currentPath = true
+    currentPoints = { p15 }
+    currentPointIdx = 1
+    moving = true
+    local v13 = p14:GetLocalHumanoid()
+    local v14 = (v13.Torso.Position - p15).magnitude / v13.WalkSpeed
+    timeReachedLastPoint = tick()
+    expectedTimeToNextPoint = v14
+    BindableEvent:Fire("targetPoint", p15)
+end
+
+local function StopFollowingPath(p16) -- line: 183
+    currentPath = nil
+    currentPoints = nil
+    currentPointIdx = 0
+    moving = false
+    p16.moveVector = Vector3.new(0, 0, 0)
+end
+
+v7.StopFollowingPath = StopFollowingPath
+
+function v7.TryComputePath(_, p18, p19) -- line: 191
+    -- upvalues: PathfindingService (copy)
+    local v15 = p18
+    local v16 = p19
+    local n1 = 0
+    local v17
+    while true do
+        if not v17 and n1 < 5 then
+            local v18 = PathfindingService:ComputeSmoothPathAsync(v15, v16, 200)
+            n1 += 1
+            if v18.Status == Enum.PathStatus.ClosestNoPath or v18.Status == Enum.PathStatus.ClosestOutOfRange then
+                break
+            end
+            local v19, v20
+            if v18 and v18.Status == Enum.PathStatus.FailStartNotEmpty then
+                v20 = v15 + (v16 - v15).Unit
+            else
+                v20 = v15
+                v19 = v18
+            end
+            if v19 and v19.Status == Enum.PathStatus.FailFinishNotEmpty then
+                v16 += Vector3.new(0, 1, 0)
+                v17 = nil
+            else
+                v17 = v19
+            end
+            v15 = v20
+            continue
+        end
+        return v17
+    end
+    return nil
+end
+
+function v7.OnNavigationRequest(p20, p21, _) -- line: 218
+    -- upvalues: v2 (ref)
+    local Position = p21.Position
+    local currentDestination = p20.currentDestination
+    local x = Position.x
+    local v21
+    if x == x then
+        if x == (1/0) then
+            v21 = false
+        else
+            v21 = x ~= (-1/0)
+        end
+    else
+        v21 = false
+    end
+    local v22
+    if v21 then
+        local y = Position.y
+        local v23
+        if y == y then
+            if y == (1/0) then
+                v23 = false
+            else
+                v23 = y ~= (-1/0)
+            end
+        else
+            v23 = false
+        end
+        if v23 then
+            local z = Position.z
+            if z == z then
+                if z == (1/0) then
+                    v22 = false
+                else
+                    v22 = z ~= (-1/0)
+                end
+            else
+                v22 = false
+            end
+        else
+            v22 = v23
+        end
+    else
+        v22 = v21
+    end
+    if v22 then
+        p20.currentDestination = Position
+        local v24 = p20:GetLocalHumanoid()
+        if v24 and v24.Torso then
+            local Position = v24.Torso.Position
+            if (p20.currentDestination - Position).magnitude < 12 then
+                p20:GoToPoint(p20.currentDestination)
+            elseif not currentDestination or (p20.currentDestination - currentDestination).magnitude > 4 then
+                local v25 = p20:TryComputePath(Position, p20.currentDestination)
+                if v25 then
+                    p20:StartFollowingPath(v25)
+                    if v2 then
+                        v2.setCurrentPoints(p20.currentPoints)
+                        v2.renderPath()
+                    end
+                else
+                    p20:StopFollowingPath()
+                    if v2 then
+                        v2.clearRenderedPath()
+                    end
+                end
+            elseif moving then
+                p20.currentPoints[#currentPoints] = p20.currentDestination
+            else
+                p20:GoToPoint(p20.currentDestination)
+            end
+        end
+    end
+end
+
+local function OnJumpAction(p23, _, p25, _) -- line: 264
+    if p25 == Enum.UserInputState.Begin then
+        p23.isJumping = true
+    end
+    return Enum.ContextActionResult.Sink
+end
+
+v7.OnJumpAction = OnJumpAction
+
+function v7.BindJumpAction(p27, p28) -- line: 270
+    -- upvalues: ContextActionService (copy)
+    if p28 then
+        if not p27.isJumpBound then
+            p27.isJumpBound = true
+            ContextActionService:BindActionAtPriority("VRJumpAction", function() -- line: 274
+                -- upvalues: p27 (copy)
+                return p27:OnJumpAction()
+            end, false, p27.CONTROL_ACTION_PRIORITY, Enum.KeyCode.ButtonA)
+        end
+    elseif p27.isJumpBound then
+        p27.isJumpBound = false
+        ContextActionService:UnbindAction("VRJumpAction")
+    end
+end
+
+function v7.ControlCharacterGamepad(p29, _, p31, p32) -- line: 285
+    -- upvalues: v2 (ref), BindableEvent (copy)
+    if p32.KeyCode == Enum.KeyCode.Thumbstick1 then
+        if p31 == Enum.UserInputState.Cancel then
+            p29.moveVector = Vector3.new(0, 0, 0)
+        else
+            if p31 == Enum.UserInputState.End then
+                p29.moveVector = Vector3.new(0, 0, 0)
+                if p29:ShouldUseNavigationLaser() then
+                    p29:BindJumpAction(false)
+                    p29:SetLaserPointerMode("Navigation")
+                end
+                if p29.moveLatch then
+                    p29.moveLatch = false
+                    BindableEvent:Fire("offtrack")
+                end
+            else
+                p29:StopFollowingPath()
+                if v2 then
+                    v2.clearRenderedPath()
+                end
+                if p29:ShouldUseNavigationLaser() then
+                    p29:BindJumpAction(true)
+                    p29:SetLaserPointerMode("Hidden")
+                end
+                if p32.Position.magnitude > 0.22 then
+                    local X = p32.Position.X
+                    local v26 = -p32.Position.Y
+                    p29.moveVector = Vector3.new(X, 0, v26)
+                    if p29.moveVector.magnitude > 0 then
+                        local unit = p29.moveVector.unit
+                        local magnitude = p32.Position.magnitude
+                        p29.moveVector = unit * math.min(1, magnitude)
+                    end
+                    p29.moveLatch = true
+                end
+            end
+            return Enum.ContextActionResult.Sink
+        end
+    end
+end
+
+function v7.OnHeartbeat(p33, p34) -- line: 328
+    -- upvalues: v2 (ref), v3 (copy), UserRaycastUpdateAPI2 (copy), BindableEvent (copy)
+    local moveVector = p33.moveVector
+    local v27 = p33:GetLocalHumanoid()
+    if v27 and v27.Torso then
+        if p33.moving and p33.currentPoints then
+            local Position = v27.Torso.Position
+            local v28 = (currentPoints[1] - Position) * Vector3.new(1, 0, 1)
+            local magnitude = v28.magnitude
+            local v29 = v28 / magnitude
+            if magnitude < 1 then
+                local v30, v31 = 0, currentPoints[1]
+
+                for v32, v33 in pairs(currentPoints) do
+                    if v32 ~= 1 then
+                        v30 += (v33 - v31).magnitude / v27.WalkSpeed
+                        v31 = v33
+                    end
+                end
+
+                table.remove(currentPoints, 1)
+                currentPointIdx = currentPointIdx + 1
+                if #currentPoints == 0 then
+                    p33:StopFollowingPath()
+                    if v2 then
+                        v2.clearRenderedPath()
+                    end
+                    return
+                end
+                if v2 then
+                    v2.setCurrentPoints(currentPoints)
+                    v2.renderPath()
+                end
+                expectedTimeToNextPoint = (currentPoints[1] - Position).magnitude / v27.WalkSpeed
+                timeReachedLastPoint = tick()
+            else
+                if UserRaycastUpdateAPI2 then
+                    v3.FilterDescendantsInstances = {
+                        game.Players.LocalPlayer.Character,
+                        workspace.CurrentCamera
+                    }
+                    local v34 = workspace:Raycast(Position - Vector3.new(0, 1, 0), v29 * 3, v3)
+                    if v34 then
+                        local v35 = workspace:Raycast(v34.Position + v29 * 0.5 + Vector3.new(0, 100, 0), Vector3.new(-0, -100, -0, -0), v3).Position.Y - Position.Y
+                        if v35 < 6 and v35 > -2 then
+                            v27.Jump = true
+                        end
+                    end
+                else
+                    local t2 = {
+                        game.Players.LocalPlayer.Character,
+                        workspace.CurrentCamera
+                    }
+                    local v36 = Ray.new(Position - Vector3.new(0, 1, 0), v29 * 3)
+                    local v37, v38 = workspace:FindPartOnRayWithIgnoreList(v36, t2)
+                    if v37 then
+                        local v39 = Ray.new(v38 + v29 * 0.5 + Vector3.new(0, 100, 0), (Vector3.new(-0, -100, -0, -0)))
+                        local _, v40 = workspace:FindPartOnRayWithIgnoreList(v39, t2)
+                        local v41 = v40.Y - Position.Y
+                        if v41 < 6 and v41 > -2 then
+                            v27.Jump = true
+                        end
+                    end
+                end
+                local v42 = tick() - timeReachedLastPoint
+                if expectedTimeToNextPoint + 2 < v42 then
+                    p33:StopFollowingPath()
+                    if v2 then
+                        v2.clearRenderedPath()
+                    end
+                    BindableEvent:Fire("offtrack")
+                end
+                moveVector = p33.moveVector:Lerp(v29, p34 * 10)
+            end
+        end
+        local x = moveVector.x
+        local v43
+        if x == x then
+            if x == (1/0) then
+                v43 = false
+            else
+                v43 = x ~= (-1/0)
+            end
+        else
+            v43 = false
+        end
+        local v44
+        if v43 then
+            local y = moveVector.y
+            local v45
+            if y == y then
+                if y == (1/0) then
+                    v45 = false
+                else
+                    v45 = y ~= (-1/0)
+                end
+            else
+                v45 = false
+            end
+            if v45 then
+                local z = moveVector.z
+                if z == z then
+                    if z == (1/0) then
+                        v44 = false
+                    else
+                        v44 = z ~= (-1/0)
+                    end
+                else
+                    v44 = false
+                end
+            else
+                v44 = v45
+            end
+        else
+            v44 = v43
+        end
+        if v44 then
+            p33.moveVector = moveVector
+        end
+    end
+end
+
+local function OnUserCFrameEnabled(p35) -- line: 426
+    if p35:ShouldUseNavigationLaser() then
+        p35:BindJumpAction(false)
+        p35:SetLaserPointerMode("Navigation")
+    else
+        p35:BindJumpAction(true)
+        p35:SetLaserPointerMode("Hidden")
+    end
+end
+
+v7.OnUserCFrameEnabled = OnUserCFrameEnabled
+
+function v7.Enable(p36, p37) -- line: 436
+    -- upvalues: VRService (copy), RunService (copy), ContextActionService (copy)
+    p36.moveVector = Vector3.new(0, 0, 0)
+    p36.isJumping = false
+    if p37 then
+        local NavigationRequested = VRService.NavigationRequested
+        p36.navigationRequestedConn = NavigationRequested:Connect(function(p38, p39) -- line: 442
+            -- upvalues: p36 (copy)
+            p36:OnNavigationRequest(p38, p39)
+        end)
+        local Heartbeat = RunService.Heartbeat
+        p36.heartbeatConn = Heartbeat:Connect(function(p40) -- line: 443
+            -- upvalues: p36 (copy)
+            p36:OnHeartbeat(p40)
+        end)
+        ContextActionService:BindAction("MoveThumbstick", function(p41, p42, p43) -- line: 445
+            -- upvalues: p36 (copy)
+            return p36:ControlCharacterGamepad(p41, p42, p43)
+        end, false, p36.CONTROL_ACTION_PRIORITY, Enum.KeyCode.Thumbstick1)
+        ContextActionService:BindActivate(Enum.UserInputType.Gamepad1, Enum.KeyCode.ButtonR2)
+        local UserCFrameEnabled = VRService.UserCFrameEnabled
+        p36.userCFrameEnabledConn = UserCFrameEnabled:Connect(function() -- line: 449
+            -- upvalues: p36 (copy)
+            p36:OnUserCFrameEnabled()
+        end)
+        p36:OnUserCFrameEnabled()
+        VRService:SetTouchpadMode(Enum.VRTouchpad.Left, Enum.VRTouchpadMode.VirtualThumbstick)
+        VRService:SetTouchpadMode(Enum.VRTouchpad.Right, Enum.VRTouchpadMode.ABXY)
+        p36.enabled = true
+    else
+        p36:StopFollowingPath()
+        ContextActionService:UnbindAction("MoveThumbstick")
+        ContextActionService:UnbindActivate(Enum.UserInputType.Gamepad1, Enum.KeyCode.ButtonR2)
+        p36:BindJumpAction(false)
+        p36:SetLaserPointerMode("Disabled")
+        if p36.navigationRequestedConn then
+            p36.navigationRequestedConn:Disconnect()
+            p36.navigationRequestedConn = nil
+        end
+        if p36.heartbeatConn then
+            p36.heartbeatConn:Disconnect()
+            p36.heartbeatConn = nil
+        end
+        if p36.userCFrameEnabledConn then
+            p36.userCFrameEnabledConn:Disconnect()
+            p36.userCFrameEnabledConn = nil
+        end
+        p36.enabled = false
+    end
+end
+
+return v7

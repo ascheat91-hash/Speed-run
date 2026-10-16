@@ -1,0 +1,613 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.ControlModule.DynamicThumbstick
+-- Took 1.46s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local Value = Enum.ContextActionPriority.High.Value
+local t1 = { 0.10999999999999999, 0.30000000000000004, 0.4, 0.5, 0.6, 0.7, 0.75 }
+local v1 = #t1
+local v2 = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+local Players = game:GetService("Players")
+local GuiService = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
+local ContextActionService = game:GetService("ContextActionService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local CommonUtils = script.Parent.Parent:WaitForChild("CommonUtils")
+local v3 = require(CommonUtils:WaitForChild("FlagUtil"))
+local UserAllowAbilityControls = v3.getUserFlag("UserAllowAbilityControls")
+local UserAllowAbilityControlsBonus = v3.getUserFlag("UserAllowAbilityControlsBonus")
+
+local function v4() -- line: 42
+    return UserSettings():IsUserFeatureEnabled("UserDynamicThumbstickSafeAreaUpdate")
+end
+
+local v5, v6 = pcall(v4)
+local v7 = v5 and v6
+local v8
+
+if UserAllowAbilityControls then
+    v8 = require(script.Parent:WaitForChild("AvatarAbilitiesInterface"))
+end
+local LocalPlayer = Players.LocalPlayer
+local LocalPlayer2 = LocalPlayer
+
+if not LocalPlayer then
+    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+    LocalPlayer2 = Players.LocalPlayer
+end
+local v9 = require(script.Parent:WaitForChild("BaseCharacterController"))
+local t2 = {}
+local v10 = setmetatable(t2, v9)
+
+v10.__index = v10
+
+function v10.new() -- line: 64
+    -- upvalues: v9 (copy), v10 (copy)
+    local v11 = v9.new()
+    local v12 = setmetatable(v11, v10)
+    v12.moveTouchObject = nil
+    v12.moveTouchLockedIn = false
+    v12.moveTouchFirstChanged = false
+    v12.moveTouchStartPosition = nil
+    v12.startImage = nil
+    v12.endImage = nil
+    v12.middleImages = {}
+    v12.startImageFadeTween = nil
+    v12.endImageFadeTween = nil
+    v12.middleImageFadeTweens = {}
+    v12.isFirstTouch = true
+    v12.thumbstickFrame = nil
+    v12.onRenderSteppedConn = nil
+    v12.fadeInAndOutBalance = 0.5
+    v12.fadeInAndOutHalfDuration = 0.3
+    v12.hasFadedBackgroundInPortrait = false
+    v12.hasFadedBackgroundInLandscape = false
+    v12.tweenInAlphaStart = nil
+    v12.tweenOutAlphaStart = nil
+    return v12
+end
+
+local function GetIsJumping(p1) -- line: 99
+    local isJumping = p1.isJumping
+    p1.isJumping = false
+    return isJumping
+end
+
+v10.GetIsJumping = GetIsJumping
+
+local function Enable(p2, p3, p4) -- line: 105
+    if p3 == nil then
+        return false
+    end
+    local v13 = not not p3
+    if p2.enabled == v13 then
+        return true
+    end
+    if v13 then
+        if not p2.thumbstickFrame then
+            p2:Create(p4)
+        end
+        p2:BindContextActions()
+    else
+        p2:UnbindContextActions()
+        p2:OnInputEnded()
+    end
+    p2.enabled = v13
+    p2.thumbstickFrame.Visible = v13
+    return nil
+end
+
+v10.Enable = Enable
+
+local function OnInputEnded(p5) -- line: 130
+    p5.moveTouchObject = nil
+    p5.moveVector = Vector3.new(0, 0, 0)
+    p5:FadeThumbstick(false)
+end
+
+v10.OnInputEnded = OnInputEnded
+
+function v10.FadeThumbstick(p6, p7) -- line: 136
+    -- upvalues: t1 (copy), v2 (copy), TweenService (copy)
+    if not (not p7 and p6.moveTouchObject) and not p6.isFirstTouch then
+        if p6.startImageFadeTween then
+            p6.startImageFadeTween:Cancel()
+        end
+        if p6.endImageFadeTween then
+            p6.endImageFadeTween:Cancel()
+        end
+        local v14 = #p6.middleImages
+
+        for i = 1, v14 do
+            if p6.middleImageFadeTweens[i] then
+                p6.middleImageFadeTweens[i]:Cancel()
+            end
+        end
+
+        if p7 then
+            p6.startImageFadeTween = TweenService:Create(p6.startImage, v2, { ImageTransparency = 0 })
+            p6.startImageFadeTween:Play()
+            p6.endImageFadeTween = TweenService:Create(p6.endImage, v2, { ImageTransparency = 0.2 })
+            p6.endImageFadeTween:Play()
+            local v15 = #p6.middleImages
+
+            for i = 1, v15 do
+                p6.middleImageFadeTweens[i] = TweenService:Create(p6.middleImages[i], v2, { ImageTransparency = t1[i] })
+                p6.middleImageFadeTweens[i]:Play()
+            end
+        else
+            p6.startImageFadeTween = TweenService:Create(p6.startImage, v2, { ImageTransparency = 1 })
+            p6.startImageFadeTween:Play()
+            p6.endImageFadeTween = TweenService:Create(p6.endImage, v2, { ImageTransparency = 1 })
+            p6.endImageFadeTween:Play()
+            local v16 = #p6.middleImages
+
+            for i = 1, v16 do
+                p6.middleImageFadeTweens[i] = TweenService:Create(p6.middleImages[i], v2, { ImageTransparency = 1 })
+                p6.middleImageFadeTweens[i]:Play()
+            end
+        end
+    end
+end
+
+local function FadeThumbstickFrame(p8, p9, p10) -- line: 179
+    p8.fadeInAndOutHalfDuration = p9 * 0.5
+    p8.fadeInAndOutBalance = p10
+    p8.tweenInAlphaStart = tick()
+end
+
+v10.FadeThumbstickFrame = FadeThumbstickFrame
+
+local function InputInFrame(p11, p12) -- line: 185
+    local AbsolutePosition = p11.thumbstickFrame.AbsolutePosition
+    local v17 = AbsolutePosition + p11.thumbstickFrame.AbsoluteSize
+    local Position = p12.Position
+    local X = Position.X
+    if AbsolutePosition.X <= X then
+        local Y = Position.Y
+        if AbsolutePosition.Y <= Y and Position.X <= v17.X and Position.Y <= v17.Y then
+            return true
+        end
+    end
+    return false
+end
+
+v10.InputInFrame = InputInFrame
+
+function v10.DoFadeInBackground(p13) -- line: 197
+    -- upvalues: LocalPlayer2 (ref)
+    local PlayerGui = LocalPlayer2:FindFirstChildOfClass("PlayerGui")
+    local hasFadedBackgroundInLandscape
+    if PlayerGui then
+        if PlayerGui.CurrentScreenOrientation == Enum.ScreenOrientation.LandscapeLeft or PlayerGui.CurrentScreenOrientation == Enum.ScreenOrientation.LandscapeRight then
+            hasFadedBackgroundInLandscape = p13.hasFadedBackgroundInLandscape
+            p13.hasFadedBackgroundInLandscape = true
+        elseif PlayerGui.CurrentScreenOrientation == Enum.ScreenOrientation.Portrait then
+            hasFadedBackgroundInLandscape = p13.hasFadedBackgroundInPortrait
+            p13.hasFadedBackgroundInPortrait = true
+        else
+            hasFadedBackgroundInLandscape = false
+        end
+    else
+        hasFadedBackgroundInLandscape = false
+    end
+    if hasFadedBackgroundInLandscape then
+        return
+    end
+    p13.fadeInAndOutHalfDuration = 0.3
+    p13.fadeInAndOutBalance = 0.5
+    p13.tweenInAlphaStart = tick()
+end
+
+local function DoMove(p14, p15) -- line: 220
+    if p15.Magnitude < p14.radiusOfDeadZone then
+        p14.moveVector = Vector3.new(0, 0, 0)
+    else
+        local Unit = p15.Unit
+        local v18 = (p14.radiusOfMaxSpeed - p15.Magnitude) / p14.radiusOfMaxSpeed
+        local v19 = Unit * (1 - math.max(0, v18))
+        local X = v19.X
+        local Y = v19.Y
+        p14.moveVector = Vector3.new(X, 0, Y)
+    end
+end
+
+v10.DoMove = DoMove
+
+function v10.LayoutMiddleImages(p16, p17, p18) -- line: 238
+    -- upvalues: v1 (copy)
+    local v20 = p16.thumbstickSize / 2 + p16.middleSize
+    local v21 = p18 - p17
+    local v22 = v21.Magnitude - p16.thumbstickRingSize / 2 - p16.middleSize
+    local Unit = v21.Unit
+    local v23 = p16.middleSpacing * v1
+    local middleSpacing = p16.middleSpacing
+    if v23 < v22 then
+        middleSpacing = v22 / v1
+    end
+
+    for i = 1, v1 do
+        local v24 = p16.middleImages[i]
+        local v25 = v20 + middleSpacing * (i - 2)
+        local v26 = v20 + middleSpacing * (i - 1)
+        if v25 < v22 then
+            local v27 = p18 - Unit * v26
+            local v28 = 1 - (v26 - v22) / middleSpacing
+            local v29 = math.clamp(v28, 0, 1)
+            v24.Visible = true
+            v24.Position = UDim2.new(0, v27.X, 0, v27.Y)
+            v24.Size = UDim2.new(0, p16.middleSize * v29, 0, p16.middleSize * v29)
+        else
+            v24.Visible = false
+        end
+    end
+end
+
+local function MoveStick(p19, p20) -- line: 269
+    local v30 = Vector2.new(p19.moveTouchStartPosition.X, p19.moveTouchStartPosition.Y) - p19.thumbstickFrame.AbsolutePosition
+    local v31 = Vector2.new(p20.X, p20.Y) - p19.thumbstickFrame.AbsolutePosition
+    p19.endImage.Position = UDim2.new(0, v31.X, 0, v31.Y)
+    p19:LayoutMiddleImages(v30, v31)
+end
+
+v10.MoveStick = MoveStick
+
+function v10.BindContextActions(p21) -- line: 277
+    -- upvalues: Value (copy), UserInputService (copy), ContextActionService (copy), TweenService (copy)
+    local function inputBegan(p22) -- line: 278
+        -- upvalues: p21 (copy), TweenService (copy)
+        if not p21.moveTouchObject and p21:InputInFrame(p22) then
+            if p21.isFirstTouch then
+                p21.isFirstTouch = false
+                local v32 = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 0)
+                TweenService:Create(p21.startImage, v32, { Size = UDim2.new(0, 0, 0, 0) }):Play()
+                TweenService:Create(p21.endImage, v32, {
+                    Size = UDim2.new(0, p21.thumbstickSize, 0, p21.thumbstickSize),
+                    ImageColor3 = Color3.new(0, 0, 0)
+                }):Play()
+            end
+            p21.moveTouchLockedIn = false
+            p21.moveTouchObject = p22
+            p21.moveTouchStartPosition = p22.Position
+            p21.moveTouchFirstChanged = true
+            p21:DoFadeInBackground()
+        end
+        return Enum.ContextActionResult.Pass
+    end
+
+    local function inputChanged(p23) -- line: 310
+        -- upvalues: p21 (copy)
+        if p23 == p21.moveTouchObject then
+            if p21.moveTouchFirstChanged then
+                p21.moveTouchFirstChanged = false
+                local v33 = Vector2.new(p23.Position.X - p21.thumbstickFrame.AbsolutePosition.X, p23.Position.Y - p21.thumbstickFrame.AbsolutePosition.Y)
+                p21.startImage.Visible = true
+                p21.startImage.Position = UDim2.new(0, v33.X, 0, v33.Y)
+                p21.endImage.Visible = true
+                p21.endImage.Position = p21.startImage.Position
+                p21:FadeThumbstick(true)
+                p21:MoveStick(p23.Position)
+            end
+            p21.moveTouchLockedIn = true
+            local v34 = Vector2.new(p23.Position.X - p21.moveTouchStartPosition.X, p23.Position.Y - p21.moveTouchStartPosition.Y)
+            local X = v34.X
+            local v35 = math.abs(X) > 0
+            local v36
+            if not v35 then
+                local Y = v34.Y
+                v36 = math.abs(Y) > 0
+            end
+            if v35 or v36 then
+                p21:DoMove(v34)
+                p21:MoveStick(p23.Position)
+            end
+            return Enum.ContextActionResult.Sink
+        end
+        return Enum.ContextActionResult.Pass
+    end
+
+    local function handleInput(_, p25, p26) -- line: 353
+        -- upvalues: p21 (copy), inputBegan (copy)
+        if p25 == Enum.UserInputState.Begin then
+            return (inputBegan(p26))
+        end
+        if p25 == Enum.UserInputState.Change then
+            if p26 == p21.moveTouchObject then
+                return Enum.ContextActionResult.Sink
+            end
+            return Enum.ContextActionResult.Pass
+        end
+        if p25 == Enum.UserInputState.End then
+            local v37 = p26 == p21.moveTouchObject
+            local moveTouchLockedIn
+            if v37 then
+                p21:OnInputEnded()
+                moveTouchLockedIn = p21.moveTouchLockedIn
+            end
+            if not v37 or not moveTouchLockedIn then
+                return Enum.ContextActionResult.Pass
+            end
+            return Enum.ContextActionResult.Sink
+        end
+        if p25 == Enum.UserInputState.Cancel then
+            p21:OnInputEnded()
+        end
+    end
+
+    local Touch = Enum.UserInputType.Touch
+    ContextActionService:BindActionAtPriority("DynamicThumbstickAction", handleInput, false, Value, Touch)
+    local TouchMoved = UserInputService.TouchMoved
+    p21.TouchMovedCon = TouchMoved:Connect(function(p27, _) -- line: 376
+        -- upvalues: inputChanged (copy)
+        inputChanged(p27)
+    end)
+end
+
+function v10.UnbindContextActions(p29) -- line: 381
+    -- upvalues: ContextActionService (copy)
+    ContextActionService:UnbindAction("DynamicThumbstickAction")
+    if p29.TouchMovedCon then
+        p29.TouchMovedCon:Disconnect()
+    end
+end
+
+function v10.Create(p30, p31) -- line: 389
+    -- upvalues: v7 (copy), v8 (ref), LocalPlayer2 (ref), t1 (copy), v1 (copy), GuiService (copy), UserInputService (copy), RunService (copy), UserAllowAbilityControls (copy), UserAllowAbilityControlsBonus (copy)
+    if p30.thumbstickFrame then
+        p30.thumbstickFrame:Destroy()
+        p30.thumbstickFrame = nil
+        if p30.onRenderSteppedConn then
+            p30.onRenderSteppedConn:Disconnect()
+            p30.onRenderSteppedConn = nil
+        end
+        if p30.absoluteSizeChangedConn then
+            p30.absoluteSizeChangedConn:Disconnect()
+            p30.absoluteSizeChangedConn = nil
+        end
+        if UserAllowAbilityControls and p30.avatarAbilitiesEnabledChangedConn then
+            p30.avatarAbilitiesEnabledChangedConn:Disconnect()
+            p30.avatarAbilitiesEnabledChangedConn = nil
+        end
+    end
+    local v38 = if v7 then 100 else 0
+    local v39 = v38
+
+    local function layoutThumbstickFrame(p32) -- line: 410
+        -- upvalues: p30 (copy), v39 (copy)
+        if p32 then
+            p30.thumbstickFrame.Size = UDim2.new(1, v39, 0.4, v39)
+            p30.thumbstickFrame.Position = UDim2.new(0, -v39, 0.6, 0)
+        else
+            p30.thumbstickFrame.Size = UDim2.new(0.4, v39, 0.6666666666666666, v39)
+            p30.thumbstickFrame.Position = UDim2.new(0, -v39, 0.3333333333333333, 0)
+        end
+    end
+
+    p30.thumbstickFrame = Instance.new("Frame")
+    p30.thumbstickFrame.BorderSizePixel = 0
+    p30.thumbstickFrame.Name = "DynamicThumbstickFrame"
+    p30.thumbstickFrame.Visible = false
+    p30.thumbstickFrame.BackgroundTransparency = 1
+    p30.thumbstickFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    p30.thumbstickFrame.Active = false
+    p30.thumbstickFrame.Size = UDim2.new(0.4, v38, 0.6666666666666666, v38)
+    p30.thumbstickFrame.Position = UDim2.new(0, -v38, 0.3333333333333333, 0)
+    p30.startImage = Instance.new("ImageLabel")
+    p30.startImage.Name = "ThumbstickStart"
+    p30.startImage.Visible = true
+    p30.startImage.BackgroundTransparency = 1
+    p30.startImage.Image = "rbxasset://textures/ui/Input/TouchControlsSheetV2.png"
+    p30.startImage.ImageRectOffset = Vector2.new(1, 1)
+    p30.startImage.ImageRectSize = Vector2.new(144, 144)
+    p30.startImage.ImageColor3 = Color3.new(0, 0, 0)
+    p30.startImage.AnchorPoint = Vector2.new(0.5, 0.5)
+    p30.startImage.ZIndex = 10
+    p30.startImage.Parent = p30.thumbstickFrame
+    p30.endImage = Instance.new("ImageLabel")
+    p30.endImage.Name = "ThumbstickEnd"
+    p30.endImage.Visible = true
+    p30.endImage.BackgroundTransparency = 1
+    p30.endImage.Image = "rbxasset://textures/ui/Input/TouchControlsSheetV2.png"
+    p30.endImage.ImageRectOffset = Vector2.new(1, 1)
+    p30.endImage.ImageRectSize = Vector2.new(144, 144)
+    p30.endImage.AnchorPoint = Vector2.new(0.5, 0.5)
+    p30.endImage.ZIndex = 10
+    p30.endImage.Parent = p30.thumbstickFrame
+
+    for i = 1, v1 do
+        p30.middleImages[i] = Instance.new("ImageLabel")
+        p30.middleImages[i].Name = "ThumbstickMiddle"
+        p30.middleImages[i].Visible = false
+        p30.middleImages[i].BackgroundTransparency = 1
+        p30.middleImages[i].Image = "rbxasset://textures/ui/Input/TouchControlsSheetV2.png"
+        p30.middleImages[i].ImageRectOffset = Vector2.new(1, 1)
+        p30.middleImages[i].ImageRectSize = Vector2.new(144, 144)
+        p30.middleImages[i].ImageTransparency = t1[i]
+        p30.middleImages[i].AnchorPoint = Vector2.new(0.5, 0.5)
+        p30.middleImages[i].ZIndex = 9
+        p30.middleImages[i].Parent = p30.thumbstickFrame
+    end
+
+    local function ResizeThumbstick() -- line: 466
+        -- upvalues: p30 (copy), p31 (copy), v39 (copy), v8 (ref), UserAllowAbilityControls (copy), UserAllowAbilityControlsBonus (copy)
+        local AbsoluteSize = p31.AbsoluteSize
+        local X = AbsoluteSize.X
+        local Y = AbsoluteSize.Y
+        local v40 = math.min(X, Y) > 500
+        if UserAllowAbilityControls then
+            local v41 = if v40 then 2 else 1
+            if UserAllowAbilityControlsBonus and v8.isEnabled() and v40 then
+                v41 = 1.6216216216216217
+            end
+            p30.thumbstickSize = 45 * v41
+            p30.thumbstickRingSize = 20 * v41
+            p30.middleSize = 10 * v41
+            p30.middleSpacing = 14 * v41
+            p30.radiusOfDeadZone = 2 * v41
+            p30.radiusOfMaxSpeed = 20 * v41
+            local v42 = 74 * v41
+            if v8.isEnabled() then
+                local v43, v44
+                if v40 then
+                    v44 = 100
+                    v43 = 112
+                else
+                    v44 = 64
+                    v43 = 64
+                end
+                p30.startImage.Position = UDim2.new(0, v42 * 0.5 + v39 + v44, 1, -v42 * 0.5 - v39 - v43)
+            else
+                p30.startImage.Position = UDim2.new(0, p30.thumbstickRingSize * 3.3 + v39, 1, -p30.thumbstickRingSize * 2.8 - v39)
+            end
+            p30.startImage.Size = UDim2.new(0, v42, 0, v42)
+        else
+            if v40 then
+                p30.thumbstickSize = 90
+                p30.thumbstickRingSize = 40
+                p30.middleSize = 20
+                p30.middleSpacing = 28
+                p30.radiusOfDeadZone = 4
+                p30.radiusOfMaxSpeed = 40
+            else
+                p30.thumbstickSize = 45
+                p30.thumbstickRingSize = 20
+                p30.middleSize = 10
+                p30.middleSpacing = 14
+                p30.radiusOfDeadZone = 2
+                p30.radiusOfMaxSpeed = 20
+            end
+            p30.startImage.Position = UDim2.new(0, p30.thumbstickRingSize * 3.3 + v39, 1, -p30.thumbstickRingSize * 2.8 - v39)
+            p30.startImage.Size = UDim2.new(0, p30.thumbstickRingSize * 3.7, 0, p30.thumbstickRingSize * 3.7)
+        end
+        p30.endImage.Position = p30.startImage.Position
+        p30.endImage.Size = UDim2.new(0, p30.thumbstickSize * 0.8, 0, p30.thumbstickSize * 0.8)
+    end
+
+    ResizeThumbstick()
+    p30.absoluteSizeChangedConn = p31:GetPropertyChangedSignal("AbsoluteSize"):Connect(ResizeThumbstick)
+    if UserAllowAbilityControls then
+        p30.avatarAbilitiesEnabledChangedConn = v8.GetEnabledChangedSignal():Connect(ResizeThumbstick)
+    end
+    local v45
+
+    local function onCurrentCameraChanged() -- line: 534
+        -- upvalues: v45 (ref), layoutThumbstickFrame (copy)
+        if v45 then
+            local v46 = v45
+            v46:Disconnect()
+            v45 = nil
+        end
+        local CurrentCamera = workspace.CurrentCamera
+        if CurrentCamera then
+            local function onViewportSizeChanged() -- line: 541
+                -- upvalues: CurrentCamera (copy), layoutThumbstickFrame (copy)
+                local ViewportSize = CurrentCamera.ViewportSize
+                local v47 = ViewportSize.X < ViewportSize.Y
+                layoutThumbstickFrame(v47)
+            end
+
+            v45 = CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(onViewportSizeChanged)
+            local ViewportSize = CurrentCamera.ViewportSize
+            local v48 = ViewportSize.X < ViewportSize.Y
+            layoutThumbstickFrame(v48)
+        end
+    end
+
+    workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(onCurrentCameraChanged)
+    if workspace.CurrentCamera then
+        onCurrentCameraChanged()
+    end
+    p30.moveTouchStartPosition = nil
+    p30.startImageFadeTween = nil
+    p30.endImageFadeTween = nil
+    p30.middleImageFadeTweens = {}
+    local RenderStepped = RunService.RenderStepped
+    p30.onRenderSteppedConn = RenderStepped:Connect(function() -- line: 561
+        -- upvalues: p30 (copy)
+        if p30.tweenInAlphaStart == nil then
+            if p30.tweenOutAlphaStart ~= nil then
+                local v49 = tick() - p30.tweenOutAlphaStart
+                local v50 = p30.fadeInAndOutHalfDuration * 2 - p30.fadeInAndOutHalfDuration * 2 * p30.fadeInAndOutBalance
+                local thumbstickFrame = p30.thumbstickFrame
+                local v51 = v49 / v50
+                thumbstickFrame.BackgroundTransparency = math.min(v51, 1) * 0.35 + 0.65
+                if v50 < v49 then
+                    p30.tweenOutAlphaStart = nil
+                end
+            end
+        else
+            local v52 = tick() - p30.tweenInAlphaStart
+            local v53 = p30.fadeInAndOutHalfDuration * 2 * p30.fadeInAndOutBalance
+            local thumbstickFrame = p30.thumbstickFrame
+            local v54 = v52 / v53
+            thumbstickFrame.BackgroundTransparency = 1 - math.min(v54, 1) * 0.35
+            if v53 < v52 then
+                p30.tweenOutAlphaStart = tick()
+                p30.tweenInAlphaStart = nil
+            end
+        end
+    end)
+    local TouchEnded = UserInputService.TouchEnded
+    p30.onTouchEndedConn = TouchEnded:connect(function(p33) -- line: 580
+        -- upvalues: p30 (copy)
+        if p33 == p30.moveTouchObject then
+            p30:OnInputEnded()
+        end
+    end)
+    local MenuOpened = GuiService.MenuOpened
+    MenuOpened:connect(function() -- line: 586
+        -- upvalues: p30 (copy)
+        if p30.moveTouchObject then
+            p30:OnInputEnded()
+        end
+    end)
+    local PlayerGui = LocalPlayer2:FindFirstChildOfClass("PlayerGui")
+    local PlayerGui2 = PlayerGui
+    while not PlayerGui do
+        LocalPlayer2.ChildAdded:wait()
+        PlayerGui = LocalPlayer2:FindFirstChildOfClass("PlayerGui")
+        PlayerGui2 = PlayerGui
+    end
+    local v55, v56
+    if PlayerGui.CurrentScreenOrientation == Enum.ScreenOrientation.LandscapeLeft then
+        v56 = true
+    else
+        v56 = PlayerGui.CurrentScreenOrientation == Enum.ScreenOrientation.LandscapeRight
+    end
+    local CurrentScreenOrientation = PlayerGui:GetPropertyChangedSignal("CurrentScreenOrientation")
+    local v57 = v56
+    v55 = CurrentScreenOrientation:Connect(function() -- line: 608
+        -- upvalues: PlayerGui2 (ref), v55 (ref), p30 (copy), v57 (copy)
+        if not (v57 and PlayerGui2.CurrentScreenOrientation == Enum.ScreenOrientation.Portrait) and (v57 or PlayerGui2.CurrentScreenOrientation == Enum.ScreenOrientation.Portrait) then
+            return
+        end
+        local v58 = v55
+        v58:disconnect()
+        p30.fadeInAndOutHalfDuration = 2.5
+        p30.fadeInAndOutBalance = 0.05
+        p30.tweenInAlphaStart = tick()
+        if v57 then
+            p30.hasFadedBackgroundInPortrait = true
+        else
+            p30.hasFadedBackgroundInLandscape = true
+        end
+    end)
+    p30.thumbstickFrame.Parent = p31
+    if game:IsLoaded() then
+        p30.fadeInAndOutHalfDuration = 2.5
+        p30.fadeInAndOutBalance = 0.05
+        p30.tweenInAlphaStart = tick()
+    else
+        coroutine.wrap(function() -- line: 628
+            -- upvalues: p30 (copy)
+            game.Loaded:Wait()
+            p30.fadeInAndOutHalfDuration = 2.5
+            p30.fadeInAndOutBalance = 0.05
+            p30.tweenInAlphaStart = tick()
+        end)()
+    end
+end
+
+return v10

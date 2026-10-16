@@ -1,0 +1,50 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.ControlModule.BaseCharacterController
+-- Took 0.69s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local CommonUtils = script.Parent.Parent:WaitForChild("CommonUtils")
+local v1 = require(CommonUtils:WaitForChild("ConnectionUtil"))
+local v2 = Vector3.new()
+local t1 = {}
+
+t1.__index = t1
+
+function t1.new() -- line: 33
+    -- upvalues: v1 (copy), v2 (copy), t1 (copy)
+    local t2 = {}
+    local v3 = setmetatable(t2, t1)
+    v3.enabled = false
+    v3.moveVector = v2
+    v3.moveVectorIsCameraRelative = true
+    v3.isJumping = false
+    v3._connectionUtil = v1.new()
+    return v3
+end
+
+local function GetMoveVector(p1) -- line: 45
+    return p1.moveVector
+end
+
+t1.GetMoveVector = GetMoveVector
+
+local function IsMoveVectorCameraRelative(p2) -- line: 49
+    return p2.moveVectorIsCameraRelative
+end
+
+t1.IsMoveVectorCameraRelative = IsMoveVectorCameraRelative
+
+local function GetIsJumping(p3) -- line: 53
+    return p3.isJumping
+end
+
+t1.GetIsJumping = GetIsJumping
+
+local function Enable(_, _) -- line: 59
+    error("BaseCharacterController:Enable must be overridden in derived classes and should not be called.")
+    return false
+end
+
+t1.Enable = Enable
+return t1

@@ -1,0 +1,160 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.ControlModule.Keyboard
+-- Took 0.98s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local UserInputService = game:GetService("UserInputService")
+local ContextActionService = game:GetService("ContextActionService")
+script.Parent.Parent:WaitForChild("CommonUtils")
+local v1 = Vector3.new()
+local v2 = require(script.Parent:WaitForChild("BaseCharacterController"))
+local t1 = {}
+local v3 = setmetatable(t1, v2)
+
+v3.__index = v3
+
+function v3.new(p1) -- line: 22
+    -- upvalues: v2 (copy), v3 (copy)
+    local v4 = v2.new()
+    local v5 = setmetatable(v4, v3)
+    v5.CONTROL_ACTION_PRIORITY = p1
+    v5.forwardValue = 0
+    v5.backwardValue = 0
+    v5.leftValue = 0
+    v5.rightValue = 0
+    v5.jumpEnabled = true
+    return v5
+end
+
+function v3.Enable(p2, p3) -- line: 37
+    -- upvalues: v1 (copy)
+    if p3 ~= p2.enabled then
+        p2.forwardValue = 0
+        p2.backwardValue = 0
+        p2.leftValue = 0
+        p2.rightValue = 0
+        p2.moveVector = v1
+        p2.jumpRequested = false
+        p2:UpdateJump()
+        if p3 then
+            p2:BindContextActions()
+            p2:ConnectFocusEventListeners()
+        else
+            p2._connectionUtil:disconnectAll()
+        end
+        p2.enabled = p3
+    end
+    return true
+end
+
+function v3.UpdateMovement(p4, p5) -- line: 64
+    -- upvalues: v1 (copy)
+    if p5 == Enum.UserInputState.Cancel then
+        p4.moveVector = v1
+    else
+        local v6 = p4.leftValue + p4.rightValue
+        local v7 = p4.forwardValue + p4.backwardValue
+        p4.moveVector = Vector3.new(v6, 0, v7)
+    end
+end
+
+local function UpdateJump(p6) -- line: 72
+    p6.isJumping = p6.jumpRequested
+end
+
+v3.UpdateJump = UpdateJump
+
+function v3.BindContextActions(p7) -- line: 76
+    -- upvalues: ContextActionService (copy)
+    local function v8(_, p9, _) -- line: 82
+        -- upvalues: p7 (copy)
+        local v9 = if p9 == Enum.UserInputState.Begin then -1 else 0
+        p7.forwardValue = v9
+        p7:UpdateMovement(p9)
+        return Enum.ContextActionResult.Pass
+    end
+
+    local function v10(_, p12, _) -- line: 88
+        -- upvalues: p7 (copy)
+        local v11 = if p12 == Enum.UserInputState.Begin then 1 else 0
+        p7.backwardValue = v11
+        p7:UpdateMovement(p12)
+        return Enum.ContextActionResult.Pass
+    end
+
+    local function v12(_, p15, _) -- line: 94
+        -- upvalues: p7 (copy)
+        local v13 = if p15 == Enum.UserInputState.Begin then -1 else 0
+        p7.leftValue = v13
+        p7:UpdateMovement(p15)
+        return Enum.ContextActionResult.Pass
+    end
+
+    local function v14(_, p18, _) -- line: 100
+        -- upvalues: p7 (copy)
+        local v15 = if p18 == Enum.UserInputState.Begin then 1 else 0
+        p7.rightValue = v15
+        p7:UpdateMovement(p18)
+        return Enum.ContextActionResult.Pass
+    end
+
+    local function v16(_, p21, _) -- line: 106
+        -- upvalues: p7 (copy)
+        p7.jumpRequested = p7.jumpEnabled and p21 == Enum.UserInputState.Begin
+        p7:UpdateJump()
+        return Enum.ContextActionResult.Pass
+    end
+
+    ContextActionService:BindActionAtPriority("moveForwardAction", v8, false, p7.CONTROL_ACTION_PRIORITY, Enum.PlayerActions.CharacterForward)
+    ContextActionService:BindActionAtPriority("moveBackwardAction", v10, false, p7.CONTROL_ACTION_PRIORITY, Enum.PlayerActions.CharacterBackward)
+    ContextActionService:BindActionAtPriority("moveLeftAction", v12, false, p7.CONTROL_ACTION_PRIORITY, Enum.PlayerActions.CharacterLeft)
+    ContextActionService:BindActionAtPriority("moveRightAction", v14, false, p7.CONTROL_ACTION_PRIORITY, Enum.PlayerActions.CharacterRight)
+    ContextActionService:BindActionAtPriority("jumpAction", v16, false, p7.CONTROL_ACTION_PRIORITY, Enum.PlayerActions.CharacterJump)
+    p7._connectionUtil:trackBoundFunction("moveForwardAction", function() -- line: 125
+        -- upvalues: ContextActionService (copy)
+        ContextActionService:UnbindAction("moveForwardAction")
+    end)
+    p7._connectionUtil:trackBoundFunction("moveBackwardAction", function() -- line: 126
+        -- upvalues: ContextActionService (copy)
+        ContextActionService:UnbindAction("moveBackwardAction")
+    end)
+    p7._connectionUtil:trackBoundFunction("moveLeftAction", function() -- line: 127
+        -- upvalues: ContextActionService (copy)
+        ContextActionService:UnbindAction("moveLeftAction")
+    end)
+    p7._connectionUtil:trackBoundFunction("moveRightAction", function() -- line: 128
+        -- upvalues: ContextActionService (copy)
+        ContextActionService:UnbindAction("moveRightAction")
+    end)
+    p7._connectionUtil:trackBoundFunction("jumpAction", function() -- line: 129
+        -- upvalues: ContextActionService (copy)
+        ContextActionService:UnbindAction("jumpAction")
+    end)
+end
+
+function v3.ConnectFocusEventListeners(p23) -- line: 132
+    -- upvalues: UserInputService (copy), v1 (copy)
+    local function onFocusReleased() -- line: 133
+        -- upvalues: p23 (copy), v1 (copy)
+        p23.moveVector = v1
+        p23.forwardValue = 0
+        p23.backwardValue = 0
+        p23.leftValue = 0
+        p23.rightValue = 0
+        p23.jumpRequested = false
+        p23:UpdateJump()
+    end
+
+    local function onTextFocusGained(_) -- line: 143
+        -- upvalues: p23 (copy)
+        p23.jumpRequested = false
+        p23:UpdateJump()
+    end
+
+    p23._connectionUtil:trackConnection("textBoxFocusReleased", UserInputService.TextBoxFocusReleased:Connect(onFocusReleased))
+    p23._connectionUtil:trackConnection("textBoxFocused", UserInputService.TextBoxFocused:Connect(onTextFocusGained))
+    p23._connectionUtil:trackConnection("windowFocusReleased", UserInputService.WindowFocused:Connect(onFocusReleased))
+end
+
+return v3

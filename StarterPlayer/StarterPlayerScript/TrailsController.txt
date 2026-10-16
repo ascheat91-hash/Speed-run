@@ -1,0 +1,151 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.TrailsController
+-- Took 1.11s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local t1 = {}
+local t2 = {}
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SettingsStatus = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SettingsStatus")
+local Trails = ReplicatedStorage:WaitForChild("Assets"):WaitForChild("Trails")
+
+t1[1] = false
+t2[1] = false
+
+local function enableAura(p1, p2) -- line: 14
+    local HumanoidRootPart = p1:FindFirstChild("HumanoidRootPart")
+    if HumanoidRootPart and HumanoidRootPart:FindFirstChild("EquippedTracer") then
+        local Attachment0 = HumanoidRootPart:FindFirstChild("Attachment0")
+
+        for _, v1 in ipairs(Attachment0:GetDescendants()) do
+            if v1:IsA("ParticleEmitter") then
+                v1.Enabled = p2
+            end
+        end
+    end
+end
+
+local function enableTracer(p3, p4) -- line: 30
+    local HumanoidRootPart = p3:FindFirstChild("HumanoidRootPart")
+    if HumanoidRootPart then
+        local EquippedTracer = HumanoidRootPart:FindFirstChild("EquippedTracer")
+        if EquippedTracer then
+            for _, v2 in ipairs(EquippedTracer:GetDescendants()) do
+                if v2:IsA("Trail") then
+                    v2.Enabled = p4
+                end
+            end
+        end
+    end
+end
+
+local function removeOldTracer(p5) -- line: 44
+    local HumanoidRootPart = p5:FindFirstChild("HumanoidRootPart")
+    if HumanoidRootPart then
+        local EquippedTracer = HumanoidRootPart:FindFirstChild("EquippedTracer")
+        if EquippedTracer then
+            local Attachment0 = HumanoidRootPart:FindFirstChild("Attachment0")
+            local Attachment1 = HumanoidRootPart:FindFirstChild("Attachment1")
+            if Attachment0 then
+                Attachment0:Destroy()
+            end
+            if Attachment1 then
+                Attachment1:Destroy()
+            end
+            EquippedTracer:Destroy()
+        end
+    end
+end
+
+local applyTracer = (function(p6, p7)
+    local function applyTracer(p8, p9) -- line: 62
+        -- upvalues: p6 (copy), p7 (copy), Trails (copy), enableAura (copy), enableTracer (copy), removeOldTracer (copy)
+        removeOldTracer(p8)
+        if p9 and p9 ~= "" then
+            local v3 = p8:WaitForChild("HumanoidRootPart", 2)
+            if v3 then
+                local v4 = Trails:FindFirstChild(p9)
+                if v4 then
+                    local v5 = v4:Clone()
+                    v5.Name = "EquippedTracer"
+                    v5.Parent = v3
+                    local Attachment0 = v5:FindFirstChild("Attachment0")
+                    local Attachment1 = v5:FindFirstChild("Attachment1")
+                    if not Attachment0 or not Attachment1 then
+                        warn("Broken tracer template:", p9)
+                        v5:Destroy()
+                    else
+                        Attachment0.Parent = v3
+                        Attachment1.Parent = v3
+                        Attachment0.Position = Vector3.new(0, 0, 0.1)
+                        Attachment1.Position = Vector3.new(0, 0, 0.85)
+                        enableAura(p8, p6[1])
+                        enableTracer(p8, p7[1])
+                    end
+                else
+                    warn("Tracer not found:", p9)
+                end
+            end
+        end
+    end
+
+    return applyTracer
+end)(t2, t1)
+
+local function onCharacterAdded(p10, p11) -- line: 107
+    -- upvalues: applyTracer (copy)
+    applyTracer(p11, p10:GetAttribute("EquippedTracer"))
+    p10:GetAttributeChangedSignal("EquippedTracer"):Connect(function() -- line: 112
+        -- upvalues: p10 (copy), p11 (copy), applyTracer (copy)
+        if p10.Character == p11 then
+            applyTracer(p11, p10:GetAttribute("EquippedTracer"))
+        end
+    end)
+end
+
+local function onPlayerAdded(p12) -- line: 119
+    -- upvalues: onCharacterAdded (copy)
+    task.wait(0.5)
+    if p12.Character then
+        onCharacterAdded(p12, p12.Character)
+    end
+    local CharacterAdded = p12.CharacterAdded
+    CharacterAdded:Connect(function(p13) -- line: 125
+        -- upvalues: p12 (copy), onCharacterAdded (copy)
+        onCharacterAdded(p12, p13)
+    end)
+end
+
+task.wait(0.5)
+SettingsStatus.OnClientEvent:Connect(((function(p14, p15)
+    return function(p16) -- line: 132
+        -- upvalues: p14 (copy), p15 (copy), Players (copy), enableAura (copy), enableTracer (copy)
+        if p14[1] ~= p16.Auras then
+            p14[1] = p16.Auras
+
+            for _, v6 in ipairs(Players:GetPlayers()) do
+                if v6.Character then
+                    enableAura(v6.Character, p14[1])
+                end
+            end
+        end
+        if p15[1] ~= p16.Trails then
+            p15[1] = p16.Trails
+
+            for _, v7 in ipairs(Players:GetPlayers()) do
+                if v7.Character then
+                    enableTracer(v7.Character, p15[1])
+                end
+            end
+        end
+    end
+end)(t2, t1)))
+task.wait(0.75)
+
+for _, v8 in ipairs(Players:GetPlayers()) do
+    onPlayerAdded(v8)
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)

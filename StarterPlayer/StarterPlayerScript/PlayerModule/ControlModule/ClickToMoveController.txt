@@ -1,0 +1,1723 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.ControlModule.ClickToMoveController
+-- Took 1.54s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local t1 = {}
+local t2 = {}
+
+local function v1() -- line: 10
+    return UserSettings():IsUserFeatureEnabled("UserExcludeNonCollidableForPathfinding")
+end
+
+local v2, v3 = pcall(v1)
+local v4 = v2 and v3
+
+local function v5() -- line: 14
+    return UserSettings():IsUserFeatureEnabled("UserClickToMoveSupportAgentCanClimb2")
+end
+
+local v6, v7 = pcall(v5)
+local v8 = v6 and v7
+local UserInputService = game:GetService("UserInputService")
+local PathfindingService = game:GetService("PathfindingService")
+local Players = game:GetService("Players")
+game:GetService("Debris")
+local StarterGui = game:GetService("StarterGui")
+local Workspace = game:GetService("Workspace")
+local CollectionService = game:GetService("CollectionService")
+local GuiService = game:GetService("GuiService")
+local CommonUtils = script.Parent.Parent:WaitForChild("CommonUtils")
+local UserRaycastUpdateAPI2 = require(CommonUtils:WaitForChild("FlagUtil")).getUserFlag("UserRaycastUpdateAPI2")
+local v9 = true
+local v10 = true
+local v11 = false
+
+t1[1] = 1
+
+local n1 = 8
+local t3 = {}
+
+t3[Enum.KeyCode.W] = true
+t3[Enum.KeyCode.A] = true
+t3[Enum.KeyCode.S] = true
+t3[Enum.KeyCode.D] = true
+t3[Enum.KeyCode.Up] = true
+t3[Enum.KeyCode.Down] = true
+
+local LocalPlayer = Players.LocalPlayer
+local v12 = require(script.Parent:WaitForChild("ClickToMoveDisplay"))
+local v13 = RaycastParams.new()
+
+v13.FilterType = Enum.RaycastFilterType.Exclude
+
+local t4 = {}
+
+if not UserRaycastUpdateAPI2 then
+    local function FindCharacterAncestor(p1) -- line: 65
+        -- upvalues: FindCharacterAncestor (copy)
+        if p1 then
+            local Humanoid = p1:FindFirstChildOfClass("Humanoid")
+            if Humanoid then
+                return p1, Humanoid
+            end
+            return FindCharacterAncestor(p1.Parent)
+        end
+    end
+
+    t4.FindCharacterAncestor = FindCharacterAncestor
+    local Raycast
+
+    local function Raycast2(p2, p3, p4) -- line: 77
+        -- upvalues: Workspace (copy), FindCharacterAncestor (copy), Raycast (ref)
+        local v14 = p4 or {}
+        local v15, v16, v17, v18 = Workspace:FindPartOnRayWithIgnoreList(p2, v14)
+        if v15 then
+            if p3 and v15.CanCollide == false then
+                local Humanoid = v15:FindFirstChildOfClass("Humanoid")
+                if not Humanoid then
+                    local v19
+                    v19, Humanoid = FindCharacterAncestor(v15.Parent)
+                end
+                if Humanoid == nil then
+                    table.insert(v14, v15)
+                    return Raycast(p2, p3, v14)
+                end
+            end
+            return v15, v16, v17, v18
+        end
+        return nil, nil
+    end
+
+    Raycast = Raycast2
+    t4.Raycast = Raycast2
+end
+local t5 = {}
+
+local function findPlayerHumanoid(p5) -- line: 99
+    -- upvalues: t5 (copy)
+    local v20 = p5 and p5.Character
+    if v20 then
+        local v21 = t5[p5]
+        if v21 and v21.Parent == v20 then
+            return v21
+        end
+        t5[p5] = nil
+        local Humanoid = v20:FindFirstChildOfClass("Humanoid")
+        if Humanoid then
+            t5[p5] = Humanoid
+        end
+        return Humanoid
+    end
+end
+
+t2[1] = nil
+
+local v22, v23, v24
+
+local function GetCharacter() -- line: 123
+    -- upvalues: LocalPlayer (copy)
+    return LocalPlayer and LocalPlayer.Character
+end
+
+local UpdateIgnoreTag = (function(p6)
+    local function UpdateIgnoreTag(p7) -- line: 127
+        -- upvalues: p6 (copy), v22 (ref), v23 (ref), v24 (ref), CollectionService (copy), LocalPlayer (copy)
+        if p7 ~= v22 then
+            if v23 then
+                local v25 = v23
+                v25:Disconnect()
+                v23 = nil
+            end
+            if v24 then
+                local v26 = v24
+                v26:Disconnect()
+                v24 = nil
+            end
+            v22 = p7
+            local t6 = {}
+            t6[1] = LocalPlayer and LocalPlayer.Character
+            p6[1] = t6
+            if v22 ~= nil then
+                local v27 = CollectionService:GetTagged(v22)
+
+                for _, v28 in ipairs(v27) do
+                    local v29 = p6[1]
+                    table.insert(v29, v28)
+                end
+
+                v23 = CollectionService:GetInstanceAddedSignal(v22):Connect(((function(p8)
+                    return function(p9) -- line: 147
+                        -- upvalues: p8 (copy)
+                        local v30 = p8[1]
+                        table.insert(v30, p9)
+                    end
+                end)(p6)))
+                v24 = CollectionService:GetInstanceRemovedSignal(v22):Connect(((function(p10)
+                    return function(p11) -- line: 151
+                        -- upvalues: p10 (copy)
+                        local v31 = #p10[1]
+
+                        for i = 1, v31 do
+                            if p10[1][i] == p11 then
+                                local v32 = p10[1]
+                                v32[i] = p10[1][#p10[1]]
+                                table.remove(p10[1])
+                                return
+                            end
+                        end
+                    end
+                end)(p6)))
+            end
+        end
+    end
+
+    return UpdateIgnoreTag
+end)(t2)
+
+local function minV(p12, p13) -- line: 173
+    local X = p12.X
+    local X2 = p13.X
+    local v33 = math.min(X, X2)
+    local Y = p12.Y
+    local Y2 = p13.Y
+    local v34 = math.min(Y, Y2)
+    local Z = p12.Z
+    local Z2 = p13.Z
+    local v35 = math.min(Z, Z2)
+    return (Vector3.new(v33, v34, v35))
+end
+
+local function maxV(p14, p15) -- line: 176
+    local X = p14.X
+    local X2 = p15.X
+    local v36 = math.max(X, X2)
+    local Y = p14.Y
+    local Y2 = p15.Y
+    local v37 = math.max(Y, Y2)
+    local Z = p14.Z
+    local Z2 = p15.Z
+    local v38 = math.max(Z, Z2)
+    return (Vector3.new(v36, v37, v38))
+end
+
+local function getCollidableExtentsSize(p16) -- line: 179
+    if p16 == nil or p16.PrimaryPart == nil then
+        return
+    end
+    assert(p16, "")
+    local PrimaryPart = p16.PrimaryPart
+    assert(PrimaryPart, "")
+    local v39 = p16.PrimaryPart.CFrame:Inverse()
+    local v40 = Vector3.new((1/0), (1/0), (1/0))
+    local v41 = Vector3.new((-1/0), (-1/0), (-1/0))
+
+    for _, v42 in pairs(p16:GetDescendants()) do
+        if v42:IsA("BasePart") and v42.CanCollide then
+            local v43 = v39 * v42.CFrame
+            local v44 = v42.Size.X / 2
+            local v45 = v42.Size.Y / 2
+            local v46 = v42.Size.Z / 2
+            local v47 = Vector3.new(v44, v45, v46)
+            local X = v47.X
+            local Y = v47.Y
+            local Z = v47.Z
+            local v48 = Vector3.new(X, Y, Z)
+            local X2 = v47.X
+            local Y2 = v47.Y
+            local v49 = -v47.Z
+            local v50 = Vector3.new(X2, Y2, v49)
+            local X3 = v47.X
+            local v51 = -v47.Y
+            local Z2 = v47.Z
+            local v52 = Vector3.new(X3, v51, Z2)
+            local X4 = v47.X
+            local v53 = -v47.Y
+            local v54 = -v47.Z
+            local v55 = Vector3.new(X4, v53, v54)
+            local v56 = -v47.X
+            local Y3 = v47.Y
+            local Z3 = v47.Z
+            local v57 = Vector3.new(v56, Y3, Z3)
+            local v58 = -v47.X
+            local Y4 = v47.Y
+            local v59 = -v47.Z
+            local v60 = Vector3.new(v58, Y4, v59)
+            local v61 = -v47.X
+            local v62 = -v47.Y
+            local Z4 = v47.Z
+            local v63 = Vector3.new(v61, v62, Z4)
+            local v64 = -v47.X
+            local v65 = -v47.Y
+            local v66 = -v47.Z
+            local t7 = {
+                v48,
+                v50,
+                v52,
+                v55,
+                v57,
+                v60,
+                v63,
+                (Vector3.new(v64, v65, v66))
+            }
+            local v67 = v40
+            local v68 = v41
+
+            for _, v69 in ipairs(t7) do
+                local v70 = v43 * v69
+                local X = v67.X
+                local X2 = v70.X
+                local v71 = math.min(X, X2)
+                local Y = v67.Y
+                local Y2 = v70.Y
+                local v72 = math.min(Y, Y2)
+                local Z = v67.Z
+                local Z2 = v70.Z
+                local v73 = math.min(Z, Z2)
+                v67 = Vector3.new(v71, v72, v73)
+                local X3 = v68.X
+                local X4 = v70.X
+                local v74 = math.max(X3, X4)
+                local Y3 = v68.Y
+                local Y4 = v70.Y
+                local v75 = math.max(Y3, Y4)
+                local Z3 = v68.Z
+                local Z4 = v70.Z
+                local v76 = math.max(Z3, Z4)
+                v68 = Vector3.new(v74, v75, v76)
+                v40 = v67
+                v41 = v68
+            end
+        end
+    end
+
+    local v77 = v41 - v40
+    if not (v77.X < 0) and not (v77.Y < 0) and not (v77.Z < 0) then
+        return v77
+    end
+    return nil
+end
+
+local Pather = (function(p17, p18)
+    local function Pather(p19, p20, p21) -- line: 214
+        -- upvalues: p17 (copy), p18 (copy), v9 (ref), v11 (ref), n1 (ref), v4 (copy), v8 (copy), PathfindingService (copy), Workspace (copy), UserRaycastUpdateAPI2 (copy), LocalPlayer (copy), v12 (copy), v13 (copy), t5 (copy), getCollidableExtentsSize (copy)
+        local t8 = {}
+        local v78, v79
+        if p21 == nil then
+            v79 = v11
+            v78 = true
+        else
+            v79 = p21
+            v78 = p21
+        end
+        t8.Cancelled = false
+        t8.Started = false
+        t8.Finished = Instance.new("BindableEvent")
+        t8.PathFailed = Instance.new("BindableEvent")
+        t8.PathComputing = false
+        t8.PathComputed = false
+        t8.OriginalTargetPoint = p19
+        t8.TargetPoint = p19
+        t8.TargetSurfaceNormal = p20
+        t8.DiedConn = nil
+        t8.SeatedConn = nil
+        t8.BlockedConn = nil
+        t8.TeleportedConn = nil
+        t8.CurrentPoint = 0
+        t8.HumanoidOffsetFromPath = Vector3.new(0, 0, 0)
+        t8.CurrentWaypointPosition = nil
+        t8.CurrentWaypointPlaneNormal = Vector3.new(0, 0, 0)
+        t8.CurrentWaypointPlaneDistance = 0
+        t8.CurrentWaypointNeedsJump = false
+        t8.CurrentHumanoidPosition = Vector3.new(0, 0, 0)
+        t8.CurrentHumanoidVelocity = 0
+        t8.NextActionMoveDirection = Vector3.new(0, 0, 0)
+        t8.NextActionJump = false
+        t8.Timeout = 0
+        local v80 = LocalPlayer and LocalPlayer.Character
+        local v81
+        if v80 then
+            v81 = t5[LocalPlayer]
+            if not (v81 and v81.Parent == v80) then
+                t5[LocalPlayer] = nil
+                local Humanoid = v80:FindFirstChildOfClass("Humanoid")
+                if Humanoid then
+                    t5[LocalPlayer] = Humanoid
+                end
+                v81 = Humanoid
+            end
+        end
+        t8.Humanoid = v81
+        t8.OriginPoint = nil
+        t8.AgentCanFollowPath = false
+        t8.DirectPath = false
+        t8.DirectPathRiseFirst = false
+        t8.stopTraverseFunc = nil
+        t8.setPointFunc = nil
+        t8.pointList = nil
+        local v82 = t8.Humanoid and t8.Humanoid.RootPart
+        local v83 = false
+        local v84 = false
+        local v85 = false
+        local v86 = false
+        local v87 = false
+        local v88 = false
+        if v82 then
+            v83 = true
+        else
+            v88 = true
+        end
+        local SeatPart
+        if v83 then
+            t8.OriginPoint = v82.CFrame.Position
+            SeatPart = t8.Humanoid.SeatPart
+            if SeatPart then
+                v84 = true
+            else
+                v85 = true
+            end
+        end
+        v83 = false
+        if v84 then
+            if SeatPart:IsA("VehicleSeat") then
+                v83 = true
+            else
+                v85 = true
+            end
+        end
+        v84 = false
+        local v89
+        if v85 then
+            if v4 then
+                v84 = true
+            else
+                v86 = true
+            end
+        end
+        v85 = false
+        local v90
+        if v84 then
+            if LocalPlayer then
+                v85 = true
+            else
+                v90 = LocalPlayer
+                v87 = true
+            end
+        end
+        v84 = false
+        if v85 then
+            v90 = LocalPlayer.Character
+            v87 = true
+        end
+        v85 = false
+        if v87 then
+            if v90 == nil then
+                v86 = true
+            else
+                v85 = true
+            end
+        end
+        v87 = false
+        if v85 then
+            v89 = getCollidableExtentsSize(v90)
+            v86 = true
+        end
+        v85 = false
+        local v91
+        if v86 then
+            if v89 == nil then
+                v85 = true
+            else
+                v91 = v89
+                v87 = true
+            end
+        end
+        v86 = false
+        local v92
+        if v85 then
+            if LocalPlayer then
+                v86 = true
+            else
+                v92 = LocalPlayer
+                v84 = true
+            end
+        end
+        if v86 then
+            v92 = LocalPlayer.Character
+            v84 = true
+        end
+        v86 = false
+        if v84 then
+            v91 = v92:GetExtentsSize()
+            v87 = true
+        end
+        v84 = false
+        local v93, v94
+        if v87 then
+            assert(v91, "")
+            local v95 = p17[1] * 0.5
+            local v96 = v91.X * v91.X + v91.Z * v91.Z
+            v93 = v95 * math.sqrt(v96)
+            v94 = p17[1] * v91.Y
+            if t8.Humanoid.JumpPower > 0 then
+                v86 = true
+            else
+                v84 = true
+            end
+        end
+        v87 = false
+        local v97
+        if v84 then
+            v97 = false
+            v87 = true
+        end
+        if v86 then
+            v97 = true
+            v87 = true
+        end
+        v86 = false
+        local v98, v99, v100
+        if v87 then
+            t8.AgentCanFollowPath = true
+            t8.DirectPath = v79
+            t8.DirectPathRiseFirst = t8.Humanoid.Sit
+            v98 = v93
+            v99 = v94
+            v100 = v97
+            v88 = false
+        end
+        v87 = false
+        local Model
+        if v83 then
+            Model = SeatPart:FindFirstAncestorOfClass("Model")
+            if Model then
+                v87 = true
+            else
+                v98 = 2
+                v99 = 5
+                v100 = true
+                v88 = false
+            end
+        end
+        v83 = false
+        local PrimaryPart, v101, v102, v103
+        if v87 then
+            PrimaryPart = Model.PrimaryPart
+            Model.PrimaryPart = SeatPart
+            if v78 then
+                v83 = true
+            else
+                v101 = 2
+                v102 = 5
+                v103 = true
+                v86 = true
+            end
+        end
+        if v83 then
+            local v104 = Model:GetExtentsSize()
+            local v105 = p17[1] * 0.5
+            local v106 = v104.X * v104.X + v104.Z * v104.Z
+            v101 = v105 * math.sqrt(v106)
+            v102 = p17[1] * v104.Y
+            t8.AgentCanFollowPath = true
+            t8.DirectPath = v78
+            v103 = false
+            v86 = true
+        end
+        if v86 then
+            Model.PrimaryPart = PrimaryPart
+            v98 = v101
+            v99 = v102
+            v100 = v103
+            v88 = false
+        end
+        if not v88 then
+            if v8 then
+                t8.pathResult = PathfindingService:CreatePath({
+                    AgentCanClimb = true,
+                    AgentRadius = v98,
+                    AgentHeight = v99,
+                    AgentCanJump = v100
+                })
+            else
+                t8.pathResult = PathfindingService:CreatePath({
+                    AgentRadius = v98,
+                    AgentHeight = v99,
+                    AgentCanJump = v100
+                })
+            end
+        end
+
+        function t8.Cleanup(_) -- line: 332
+            -- upvalues: t8 (copy)
+            if t8.stopTraverseFunc then
+                t8.stopTraverseFunc()
+                t8.stopTraverseFunc = nil
+            end
+            if t8.BlockedConn then
+                t8.BlockedConn:Disconnect()
+                t8.BlockedConn = nil
+            end
+            if t8.DiedConn then
+                t8.DiedConn:Disconnect()
+                t8.DiedConn = nil
+            end
+            if t8.SeatedConn then
+                t8.SeatedConn:Disconnect()
+                t8.SeatedConn = nil
+            end
+            if t8.TeleportedConn then
+                t8.TeleportedConn:Disconnect()
+                t8.TeleportedConn = nil
+            end
+            t8.Started = false
+        end
+
+        function t8.Cancel(_) -- line: 361
+            -- upvalues: t8 (copy)
+            t8.Cancelled = true
+            t8:Cleanup()
+        end
+
+        function t8.IsActive(_) -- line: 366
+            -- upvalues: t8 (copy)
+            local AgentCanFollowPath = t8.AgentCanFollowPath
+            return AgentCanFollowPath and t8.Started and not t8.Cancelled
+        end
+
+        function t8.OnPathInterrupted(_) -- line: 370
+            -- upvalues: t8 (copy)
+            t8.Cancelled = true
+            t8:OnPointReached(false)
+        end
+
+        function t8.ComputePath(_) -- line: 376
+            -- upvalues: t8 (copy)
+            if t8.OriginPoint then
+                if t8.PathComputed or t8.PathComputing then
+                    return
+                end
+                t8.PathComputing = true
+                if t8.AgentCanFollowPath then
+                    if t8.DirectPath then
+                        local v107 = PathWaypoint.new(t8.OriginPoint, Enum.PathWaypointAction.Walk)
+                        local new = PathWaypoint.new
+                        local TargetPoint = t8.TargetPoint
+                        local Jump = t8.DirectPathRiseFirst and Enum.PathWaypointAction.Jump or Enum.PathWaypointAction.Walk
+                        t8.pointList = {
+                            v107,
+                            new(TargetPoint, Jump)
+                        }
+                        t8.PathComputed = true
+                    else
+                        t8.pathResult:ComputeAsync(t8.OriginPoint, t8.TargetPoint)
+                        t8.pointList = t8.pathResult:GetWaypoints()
+                        t8.BlockedConn = t8.pathResult.Blocked:Connect(function(p27) -- line: 390
+                            -- upvalues: t8 (copy)
+                            t8:OnPathBlocked(p27)
+                        end)
+                        t8.PathComputed = t8.pathResult.Status == Enum.PathStatus.Success
+                    end
+                end
+                t8.PathComputing = false
+            end
+        end
+
+        function t8.IsValidPath(_) -- line: 398
+            -- upvalues: t8 (copy)
+            t8:ComputePath()
+            return t8.PathComputed and t8.AgentCanFollowPath
+        end
+
+        t8.Recomputing = false
+
+        function t8.OnPathBlocked(_, p30) -- line: 404
+            -- upvalues: t8 (copy), v9 (ref), v12 (copy)
+            local v108
+            if t8.CurrentPoint <= p30 then
+                if t8.Recomputing then
+                    v108 = true
+                else
+                    t8.Recomputing = true
+                    if t8.stopTraverseFunc then
+                        t8.stopTraverseFunc()
+                        t8.stopTraverseFunc = nil
+                    end
+                    v108 = false
+                end
+            else
+                v108 = true
+            end
+            if v108 then
+                return
+            end
+            t8.OriginPoint = t8.Humanoid.RootPart.CFrame.p
+            t8.pathResult:ComputeAsync(t8.OriginPoint, t8.TargetPoint)
+            t8.pointList = t8.pathResult:GetWaypoints()
+            if #t8.pointList > 0 then
+                t8.HumanoidOffsetFromPath = t8.pointList[1].Position - t8.OriginPoint
+            end
+            t8.PathComputed = t8.pathResult.Status == Enum.PathStatus.Success
+            if v9 then
+                local v109, v110 = v12.CreatePathDisplay(t8.pointList)
+                t8.stopTraverseFunc = v109
+                t8.setPointFunc = v110
+            end
+            if t8.PathComputed then
+                t8.CurrentPoint = 1
+                t8:OnPointReached(true)
+            else
+                t8.PathFailed:Fire()
+                t8:Cleanup()
+            end
+            t8.Recomputing = false
+        end
+
+        function t8.OnRenderStepped(_, p32) -- line: 440
+            -- upvalues: t8 (copy), n1 (ref)
+            if t8.Started and not t8.Cancelled then
+                t8.Timeout += p32
+                local Timeout = t8.Timeout
+                if n1 < Timeout then
+                    t8:OnPointReached(false)
+                else
+                    t8.CurrentHumanoidPosition = t8.Humanoid.RootPart.Position + t8.HumanoidOffsetFromPath
+                    t8.CurrentHumanoidVelocity = t8.Humanoid.RootPart.Velocity
+                    while t8.Started and t8:IsCurrentWaypointReached() do
+                        t8:OnPointReached(true)
+                    end
+                    if t8.Started then
+                        t8.NextActionMoveDirection = t8.CurrentWaypointPosition - t8.CurrentHumanoidPosition
+                        if t8.NextActionMoveDirection.Magnitude > 0.000001 then
+                            t8.NextActionMoveDirection = t8.NextActionMoveDirection.Unit
+                        else
+                            t8.NextActionMoveDirection = Vector3.new(0, 0, 0)
+                        end
+                        if t8.CurrentWaypointNeedsJump then
+                            t8.NextActionJump = true
+                            t8.CurrentWaypointNeedsJump = false
+                        else
+                            t8.NextActionJump = false
+                        end
+                    end
+                end
+            end
+        end
+
+        function t8.IsCurrentWaypointReached(_) -- line: 478
+            -- upvalues: t8 (copy)
+            local v111
+            if t8.CurrentWaypointPlaneNormal == Vector3.new(0, 0, 0) then
+                v111 = true
+            else
+                local v112 = t8.CurrentWaypointPlaneNormal:Dot(t8.CurrentHumanoidPosition) - t8.CurrentWaypointPlaneDistance
+                local v113 = 0.0625 * -t8.CurrentWaypointPlaneNormal:Dot(t8.CurrentHumanoidVelocity)
+                v111 = v112 < math.max(1, v113)
+            end
+            if v111 then
+                t8.CurrentWaypointPosition = nil
+                t8.CurrentWaypointPlaneNormal = Vector3.new(0, 0, 0)
+                t8.CurrentWaypointPlaneDistance = 0
+            end
+            return v111
+        end
+
+        function t8.OnPointReached(_, p35) -- line: 504
+            -- upvalues: t8 (copy)
+            local v114
+            if p35 then
+                if t8.Cancelled then
+                    v114 = true
+                else
+                    if t8.setPointFunc then
+                        t8.setPointFunc(t8.CurrentPoint)
+                    end
+                    v114 = false
+                end
+            else
+                v114 = true
+            end
+            if not v114 then
+                local v115 = t8.CurrentPoint + 1
+                if #t8.pointList < v115 then
+                    if t8.stopTraverseFunc then
+                        t8.stopTraverseFunc()
+                    end
+                    t8.Finished:Fire()
+                    t8:Cleanup()
+                else
+                    local v116 = t8.pointList[t8.CurrentPoint]
+                    local v117 = t8.pointList[v115]
+                    local v118 = t8.Humanoid:GetState()
+                    if v118 == Enum.HumanoidStateType.FallingDown or v118 == Enum.HumanoidStateType.Freefall or v118 == Enum.HumanoidStateType.Jumping then
+                        local v119 = v117.Action == Enum.PathWaypointAction.Jump
+                        if not v119 and t8.CurrentPoint > 1 then
+                            local v120 = t8.pointList[t8.CurrentPoint - 1]
+                            local v121 = v116.Position - v120.Position
+                            local v122 = v117.Position - v116.Position
+                            v119 = Vector2.new(v121.x, v121.z).Unit:Dot(Vector2.new(v122.x, v122.z).Unit) < 0.996
+                        end
+                        if v119 then
+                            t8.Humanoid.FreeFalling:Wait()
+                            wait(0.1)
+                        end
+                    end
+                    t8:MoveToNextWayPoint(v116, v117, v115)
+                end
+            else
+                t8.PathFailed:Fire()
+                t8:Cleanup()
+            end
+        end
+
+        function t8.MoveToNextWayPoint(_, p37, p38, p39) -- line: 567
+            -- upvalues: t8 (copy), v8 (copy)
+            t8.CurrentWaypointPlaneNormal = p37.Position - p38.Position
+            if not (v8 and p38.Label == "Climb") then
+                local X = t8.CurrentWaypointPlaneNormal.X
+                local Z = t8.CurrentWaypointPlaneNormal.Z
+                t8.CurrentWaypointPlaneNormal = Vector3.new(X, 0, Z)
+            end
+            if t8.CurrentWaypointPlaneNormal.Magnitude > 0.000001 then
+                t8.CurrentWaypointPlaneNormal = t8.CurrentWaypointPlaneNormal.Unit
+                t8.CurrentWaypointPlaneDistance = t8.CurrentWaypointPlaneNormal:Dot(p38.Position)
+            else
+                t8.CurrentWaypointPlaneNormal = Vector3.new(0, 0, 0)
+                t8.CurrentWaypointPlaneDistance = 0
+            end
+            t8.CurrentWaypointNeedsJump = p38.Action == Enum.PathWaypointAction.Jump
+            t8.CurrentWaypointPosition = p38.Position
+            t8.CurrentPoint = p39
+            t8.Timeout = 0
+        end
+
+        function t8.Start(_, p41) -- line: 599
+            -- upvalues: t8 (copy), v9 (ref), v12 (copy)
+            if t8.AgentCanFollowPath then
+                if not t8.Started then
+                    t8.Started = true
+                    v12.CancelFailureAnimation()
+                    if v9 and (p41 == nil or p41) then
+                        local v123, v124 = v12.CreatePathDisplay(t8.pointList, t8.OriginalTargetPoint)
+                        t8.stopTraverseFunc = v123
+                        t8.setPointFunc = v124
+                    end
+                    if #t8.pointList > 0 then
+                        local v125 = t8.pointList[1].Position.Y - t8.OriginPoint.Y
+                        t8.HumanoidOffsetFromPath = Vector3.new(0, v125, 0)
+                        t8.CurrentHumanoidPosition = t8.Humanoid.RootPart.Position + t8.HumanoidOffsetFromPath
+                        t8.CurrentHumanoidVelocity = t8.Humanoid.RootPart.Velocity
+                        t8.SeatedConn = t8.Humanoid.Seated:Connect(function(_, _) -- line: 626
+                            -- upvalues: t8 (copy)
+                            t8:OnPathInterrupted()
+                        end)
+                        t8.DiedConn = t8.Humanoid.Died:Connect(function() -- line: 627
+                            -- upvalues: t8 (copy)
+                            t8:OnPathInterrupted()
+                        end)
+                        t8.TeleportedConn = t8.Humanoid.RootPart:GetPropertyChangedSignal("CFrame"):Connect(function() -- line: 628
+                            -- upvalues: t8 (copy)
+                            t8:OnPathInterrupted()
+                        end)
+                        t8.CurrentPoint = 1
+                        t8:OnPointReached(true)
+                    else
+                        t8.PathFailed:Fire()
+                        if t8.stopTraverseFunc then
+                            t8.stopTraverseFunc()
+                        end
+                    end
+                end
+            else
+                t8.PathFailed:Fire()
+            end
+        end
+
+        local v126 = t8.TargetPoint + t8.TargetSurfaceNormal * 1.5
+        if UserRaycastUpdateAPI2 then
+            if not p18[1] then
+                p18[1] = {}
+                local v127 = p18[1]
+                assert(v127, "")
+                local v128 = p18[1]
+                local v129 = LocalPlayer and LocalPlayer.Character
+                table.insert(v128, v129)
+            end
+            local v130 = p18[1]
+            v13.FilterDescendantsInstances = v130
+            local v131 = Workspace:Raycast(v126, Vector3.new(-0, -50, -0, -0), v13)
+            if v131 then
+                t8.TargetPoint = v131.Position
+            end
+        else
+            local v132 = Ray.new(v126, (Vector3.new(0, -50, 0)))
+            if not p18[1] then
+                p18[1] = {}
+                local v133 = p18[1]
+                assert(v133, "")
+                local v134 = p18[1]
+                local v135 = LocalPlayer and LocalPlayer.Character
+                table.insert(v134, v135)
+            end
+            local v136 = p18[1]
+            local v137, v138 = Workspace:FindPartOnRayWithIgnoreList(v132, v136)
+            if v137 then
+                t8.TargetPoint = v138
+            end
+        end
+        t8:ComputePath()
+        return t8
+    end
+
+    return Pather
+end)(t1, t2)
+
+local function CheckAlive() -- line: 664
+    -- upvalues: LocalPlayer (copy), t5 (copy)
+    local v139 = LocalPlayer and LocalPlayer.Character
+    local v140
+    if v139 then
+        v140 = t5[LocalPlayer]
+        if not (v140 and v140.Parent == v139) then
+            t5[LocalPlayer] = nil
+            local Humanoid = v139:FindFirstChildOfClass("Humanoid")
+            if Humanoid then
+                t5[LocalPlayer] = Humanoid
+            end
+            v140 = Humanoid
+        end
+    end
+    if v140 == nil then
+        return false
+    end
+    return v140.Health > 0
+end
+
+local function GetEquippedTool(p44) -- line: 669
+    if p44 ~= nil then
+        for _, v141 in pairs(p44:GetChildren()) do
+            if v141:IsA("Tool") then
+                return v141
+            end
+        end
+    end
+end
+
+local v142, v143, v144
+
+local function HandleMoveTo(p45, p46, p47, p48, p49) -- line: 702
+    -- upvalues: v10 (ref), v142 (ref), v143 (ref), v144 (ref), v12 (copy), GetEquippedTool (copy)
+    if v142 then
+        local v145 = v142
+        v145:Cancel()
+        v142 = nil
+        if v143 then
+            local v146 = v143
+            v146:Disconnect()
+            v143 = nil
+        end
+        if v144 then
+            local v147 = v144
+            v147:Disconnect()
+            v144 = nil
+        end
+    end
+    v142 = p45
+    p45:Start(p49)
+    v143 = p45.Finished.Event:Connect(function() -- line: 709
+        -- upvalues: p47 (copy), p48 (copy), v142 (ref), v143 (ref), v144 (ref), GetEquippedTool (copy)
+        if v142 then
+            local v148 = v142
+            v148:Cancel()
+            v142 = nil
+        end
+        if v143 then
+            local v149 = v143
+            v149:Disconnect()
+            v143 = nil
+        end
+        if v144 then
+            local v150 = v144
+            v150:Disconnect()
+            v144 = nil
+        end
+        if p47 then
+            local v151 = GetEquippedTool(p48)
+            if v151 then
+                v151:Activate()
+            end
+        end
+    end)
+    v144 = p45.PathFailed.Event:Connect(function() -- line: 718
+        -- upvalues: p46 (copy), p49 (copy), v10 (ref), v142 (ref), v143 (ref), v144 (ref), v12 (copy)
+        if v142 then
+            local v152 = v142
+            v152:Cancel()
+            v142 = nil
+        end
+        if v143 then
+            local v153 = v143
+            v153:Disconnect()
+            v143 = nil
+        end
+        if v144 then
+            local v154 = v144
+            v154:Disconnect()
+            v144 = nil
+        end
+        if p49 == nil or p49 then
+            local v155 = v10
+            if v155 then
+                local v156 = v142
+                if v156 then
+                    local v157 = v142
+                    v156 = v157:IsActive()
+                end
+                v155 = not v156
+            end
+            if v155 then
+                v12.PlayFailureAnimation()
+            end
+            v12.DisplayFailureWaypoint(p46)
+        end
+    end)
+end
+
+OnTap = (function(p50)
+    local function OnTap(p51, p52, p53) -- line: 740
+        -- upvalues: p50 (copy), v10 (ref), v142 (ref), v143 (ref), v144 (ref), Players (copy), StarterGui (copy), Workspace (copy), UserRaycastUpdateAPI2 (copy), LocalPlayer (copy), v12 (copy), v13 (copy), t4 (copy), t5 (copy), Pather (copy), GetEquippedTool (copy), HandleMoveTo (copy)
+        local CurrentCamera = Workspace.CurrentCamera
+        local Character = LocalPlayer.Character
+        local v158 = LocalPlayer and LocalPlayer.Character
+        local v159
+        if v158 then
+            v159 = t5[LocalPlayer]
+            if not (v159 and v159.Parent == v158) then
+                t5[LocalPlayer] = nil
+                local Humanoid = v158:FindFirstChildOfClass("Humanoid")
+                if Humanoid then
+                    t5[LocalPlayer] = Humanoid
+                end
+                v159 = Humanoid
+            end
+        end
+        if v159 ~= nil and v159.Health > 0 then
+            if #p51 == 1 or p52 then
+                if CurrentCamera then
+                    local v160 = CurrentCamera:ScreenPointToRay(p51[1].X, p51[1].Y)
+                    if UserRaycastUpdateAPI2 then
+                        if not p50[1] then
+                            p50[1] = {}
+                            local v161 = p50[1]
+                            assert(v161, "")
+                            local v162 = p50[1]
+                            local v163 = LocalPlayer and LocalPlayer.Character
+                            table.insert(v162, v163)
+                        end
+                        local v164 = p50[1]
+                        local v165, Instance
+                        if v164 then
+                        else
+                            v165, Instance, v164 = nil, nil, {}
+                        end
+                        local v166, Instance2, v167
+                        while true do
+                            v13.FilterDescendantsInstances = v164
+                            v166 = Workspace:Raycast(v160.Origin, v160.Direction * 1000, v13)
+                            local v168
+                            if v166 then
+                                Instance2 = v166.Instance
+                                if Instance2.CanCollide then
+                                    v167 = v165
+                                    Instance2 = Instance
+                                    v168 = true
+                                else
+                                    local Humanoid, Parent
+                                    while true do
+                                        Humanoid = Instance2:FindFirstChildOfClass("Humanoid")
+                                        Parent = Instance2.Parent
+                                        if not Humanoid and Parent then
+                                            Instance2 = Parent
+                                            continue
+                                        end
+                                        break
+                                    end
+                                    if Humanoid then
+                                        v168 = true
+                                    elseif Parent then
+                                        table.insert(v164, Parent)
+                                        Instance2 = nil
+                                        v168 = false
+                                    else
+                                        v168 = true
+                                    end
+                                    v167 = Humanoid
+                                end
+                            else
+                                v167 = v165
+                                Instance2 = Instance
+                                v168 = true
+                            end
+                            if v168 then
+                                break
+                            end
+                            v165 = v167
+                            Instance = Instance2
+                        end
+                        if p53 and v167 and StarterGui:GetCore("AvatarContextMenuEnabled") and Players:GetPlayerFromCharacter(v167.Parent) then
+                            if v142 then
+                                local v169 = v142
+                                v169:Cancel()
+                                v142 = nil
+                            end
+                            if v143 then
+                                local v170 = v143
+                                v170:Disconnect()
+                                v143 = nil
+                            end
+                            if v144 then
+                                local v171 = v144
+                                v171:Disconnect()
+                                v144 = nil
+                            end
+                        else
+                            local Position, Instance
+                            if v166 and Character then
+                                Position = v166.Position
+                                if p52 then
+                                    Position = p52
+                                else
+                                    Instance = Instance2
+                                end
+                            else
+                                return
+                            end
+                            if v142 then
+                                local v172 = v142
+                                v172:Cancel()
+                                v142 = nil
+                            end
+                            if v143 then
+                                local v173 = v143
+                                v173:Disconnect()
+                                v143 = nil
+                            end
+                            if v144 then
+                                local v174 = v144
+                                v174:Disconnect()
+                                v144 = nil
+                            end
+                            local v175 = Pather(Position, v166.Normal)
+                            if v175:IsValidPath() then
+                                HandleMoveTo(v175, Position, Instance, Character)
+                            else
+                                v175:Cleanup()
+                                if v142 and v142:IsActive() then
+                                    local v176 = v142
+                                    v176:Cancel()
+                                end
+                                if v10 then
+                                    v12.PlayFailureAnimation()
+                                end
+                                v12.DisplayFailureWaypoint(Position)
+                            end
+                        end
+                    else
+                        local v177 = Ray.new(v160.Origin, v160.Direction * 1000)
+                        local Raycast = t4.Raycast
+                        if not p50[1] then
+                            p50[1] = {}
+                            local v178 = p50[1]
+                            assert(v178, "")
+                            local v179 = p50[1]
+                            local v180 = LocalPlayer and LocalPlayer.Character
+                            table.insert(v179, v180)
+                        end
+                        local v181 = p50[1]
+                        local v182, v183, v184 = Raycast(v177, true, v181)
+                        local v185, v186 = t4.FindCharacterAncestor(v182)
+                        if p53 and v186 and StarterGui:GetCore("AvatarContextMenuEnabled") and Players:GetPlayerFromCharacter(v186.Parent) then
+                            if v142 then
+                                local v187 = v142
+                                v187:Cancel()
+                                v142 = nil
+                            end
+                            if v143 then
+                                local v188 = v143
+                                v188:Disconnect()
+                                v143 = nil
+                            end
+                            if v144 then
+                                local v189 = v144
+                                v189:Disconnect()
+                                v144 = nil
+                            end
+                        else
+                            if p52 then
+                                v183 = p52
+                                v185 = nil
+                            end
+                            if v183 and Character then
+                                if v142 then
+                                    local v190 = v142
+                                    v190:Cancel()
+                                    v142 = nil
+                                end
+                                if v143 then
+                                    local v191 = v143
+                                    v191:Disconnect()
+                                    v143 = nil
+                                end
+                                if v144 then
+                                    local v192 = v144
+                                    v192:Disconnect()
+                                    v144 = nil
+                                end
+                                local v193 = Pather(v183, v184)
+                                if v193:IsValidPath() then
+                                    HandleMoveTo(v193, v183, v185, Character)
+                                else
+                                    v193:Cleanup()
+                                    if v142 and v142:IsActive() then
+                                        local v194 = v142
+                                        v194:Cancel()
+                                    end
+                                    if v10 then
+                                        v12.PlayFailureAnimation()
+                                    end
+                                    v12.DisplayFailureWaypoint(v183)
+                                end
+                            end
+                        end
+                    end
+                end
+            elseif #p51 >= 2 and CurrentCamera then
+                local v195 = GetEquippedTool(Character)
+                if v195 then
+                    v195:Activate()
+                end
+            end
+        end
+    end
+
+    return OnTap
+end)(t2)
+
+local function DisconnectEvent(p54) -- line: 850
+    if p54 then
+        p54:Disconnect()
+    end
+end
+
+local v196 = require(script.Parent:WaitForChild("Keyboard"))
+local t9 = {}
+local v197 = setmetatable(t9, v196)
+
+v197.__index = v197
+
+function v197.new(p55) -- line: 861
+    -- upvalues: v196 (copy), v197 (copy)
+    local v198 = v196.new(p55)
+    local v199 = setmetatable(v198, v197)
+    v199.fingerTouches = {}
+    v199.numUnsunkTouches = 0
+    v199.mouse2DownTime = tick()
+    v199.mouse2DownPos = Vector2.new()
+    v199.mouse2UpTime = tick()
+    v199.keyboardMoveVector = Vector3.new(0, 0, 0)
+    v199.tapConn = nil
+    v199.inputBeganConn = nil
+    v199.inputChangedConn = nil
+    v199.inputEndedConn = nil
+    v199.humanoidDiedConn = nil
+    v199.characterChildAddedConn = nil
+    v199.onCharacterAddedConn = nil
+    v199.characterChildRemovedConn = nil
+    v199.renderSteppedConn = nil
+    v199.menuOpenedConnection = nil
+    v199.preferredInputChangedConnection = nil
+    v199.running = false
+    v199.wasdEnabled = false
+    return v199
+end
+
+local function DisconnectEvents(p56) -- line: 892
+    local tapConn = p56.tapConn
+    if tapConn then
+        tapConn:Disconnect()
+    end
+    local inputBeganConn = p56.inputBeganConn
+    if inputBeganConn then
+        inputBeganConn:Disconnect()
+    end
+    local inputChangedConn = p56.inputChangedConn
+    if inputChangedConn then
+        inputChangedConn:Disconnect()
+    end
+    local inputEndedConn = p56.inputEndedConn
+    if inputEndedConn then
+        inputEndedConn:Disconnect()
+    end
+    local humanoidDiedConn = p56.humanoidDiedConn
+    if humanoidDiedConn then
+        humanoidDiedConn:Disconnect()
+    end
+    local characterChildAddedConn = p56.characterChildAddedConn
+    if characterChildAddedConn then
+        characterChildAddedConn:Disconnect()
+    end
+    local onCharacterAddedConn = p56.onCharacterAddedConn
+    if onCharacterAddedConn then
+        onCharacterAddedConn:Disconnect()
+    end
+    local renderSteppedConn = p56.renderSteppedConn
+    if renderSteppedConn then
+        renderSteppedConn:Disconnect()
+    end
+    local characterChildRemovedConn = p56.characterChildRemovedConn
+    if characterChildRemovedConn then
+        characterChildRemovedConn:Disconnect()
+    end
+    local menuOpenedConnection = p56.menuOpenedConnection
+    if menuOpenedConnection then
+        menuOpenedConnection:Disconnect()
+    end
+    local preferredInputChangedConnection = p56.preferredInputChangedConnection
+    if preferredInputChangedConnection then
+        preferredInputChangedConnection:Disconnect()
+    end
+end
+
+v197.DisconnectEvents = DisconnectEvents
+
+local function OnTouchBegan(p57, p58, p59) -- line: 906
+    if p57.fingerTouches[p58] == nil and not p59 then
+        p57.numUnsunkTouches += 1
+    end
+    p57.fingerTouches[p58] = p59
+end
+
+v197.OnTouchBegan = OnTouchBegan
+
+local function OnTouchChanged(p60, p61, p62) -- line: 913
+    if p60.fingerTouches[p61] == nil then
+        p60.fingerTouches[p61] = p62
+        if not p62 then
+            p60.numUnsunkTouches += 1
+        end
+    end
+end
+
+v197.OnTouchChanged = OnTouchChanged
+
+local function OnTouchEnded(p63, p64, _) -- line: 922
+    if p63.fingerTouches[p64] ~= nil and p63.fingerTouches[p64] == false then
+        p63.numUnsunkTouches -= 1
+    end
+    p63.fingerTouches[p64] = nil
+end
+
+v197.OnTouchEnded = OnTouchEnded
+
+function v197.OnPreferredInputChanged(_) -- line: 929
+    -- upvalues: UserInputService (copy), LocalPlayer (copy)
+    local Character = LocalPlayer.Character
+    if Character then
+        local v200 = UserInputService.PreferredInput == Enum.PreferredInput.Touch
+
+        for _, v201 in pairs(Character:GetChildren()) do
+            if v201:IsA("Tool") then
+                v201.ManualActivationOnly = v200
+            end
+        end
+    end
+end
+
+function v197.OnCharacterAdded(p67, p68) -- line: 941
+    -- upvalues: v142 (ref), v143 (ref), v144 (ref), UserInputService (copy), GuiService (copy), t3 (copy), v12 (copy)
+    p67:DisconnectEvents()
+    local InputBegan = UserInputService.InputBegan
+    p67.inputBeganConn = InputBegan:Connect(function(p69, p70) -- line: 944
+        -- upvalues: p67 (copy), v142 (ref), v143 (ref), v144 (ref), t3 (copy), v12 (copy)
+        if p69.UserInputType == Enum.UserInputType.Touch then
+            p67:OnTouchBegan(p69, p70)
+        end
+        if p67.wasdEnabled and p70 == false and p69.UserInputType == Enum.UserInputType.Keyboard and t3[p69.KeyCode] then
+            if v142 then
+                local v202 = v142
+                v202:Cancel()
+                v142 = nil
+            end
+            if v143 then
+                local v203 = v143
+                v203:Disconnect()
+                v143 = nil
+            end
+            if v144 then
+                local v204 = v144
+                v204:Disconnect()
+                v144 = nil
+            end
+            v12.CancelFailureAnimation()
+        end
+        if p69.UserInputType == Enum.UserInputType.MouseButton2 then
+            p67.mouse2DownTime = tick()
+            p67.mouse2DownPos = p69.Position
+        end
+    end)
+    local InputChanged = UserInputService.InputChanged
+    p67.inputChangedConn = InputChanged:Connect(function(p71, p72) -- line: 961
+        -- upvalues: p67 (copy)
+        if p71.UserInputType == Enum.UserInputType.Touch then
+            p67:OnTouchChanged(p71, p72)
+        end
+    end)
+    local InputEnded = UserInputService.InputEnded
+    p67.inputEndedConn = InputEnded:Connect(function(p73, p74) -- line: 967
+        -- upvalues: p67 (copy), v142 (ref)
+        if p73.UserInputType == Enum.UserInputType.Touch then
+            p67:OnTouchEnded(p73, p74)
+        end
+        if p73.UserInputType == Enum.UserInputType.MouseButton2 then
+            p67.mouse2UpTime = tick()
+            local Position = p73.Position
+            local v205 = v142
+            local v206 = v205 or p67.keyboardMoveVector.Magnitude <= 0
+            if p67.mouse2UpTime - p67.mouse2DownTime < 0.25 and (Position - p67.mouse2DownPos).magnitude < 5 and v206 then
+                local t10 = { Position }
+                OnTap(t10)
+            end
+        end
+    end)
+    p67.tapConn = UserInputService.TouchTap:Connect(function(p75, p76) -- line: 984
+        if not p76 then
+            OnTap(p75, nil, true)
+        end
+    end)
+    p67.menuOpenedConnection = GuiService.MenuOpened:Connect(function() -- line: 990
+        -- upvalues: v142 (ref), v143 (ref), v144 (ref)
+        if v142 then
+            local v207 = v142
+            v207:Cancel()
+            v142 = nil
+        end
+        if v143 then
+            local v208 = v143
+            v208:Disconnect()
+            v143 = nil
+        end
+        if v144 then
+            local v209 = v144
+            v209:Disconnect()
+            v144 = nil
+        end
+    end)
+
+    local function OnCharacterChildAdded(p77) -- line: 994
+        -- upvalues: p67 (copy), UserInputService (copy)
+        if UserInputService.PreferredInput == Enum.PreferredInput.Touch and p77:IsA("Tool") then
+            p77.ManualActivationOnly = true
+        end
+        if p77:IsA("Humanoid") then
+            local humanoidDiedConn = p67.humanoidDiedConn
+            if humanoidDiedConn then
+                humanoidDiedConn:Disconnect()
+            end
+            p67.humanoidDiedConn = p77.Died:Connect(function() -- line: 1002
+            end)
+        end
+    end
+
+    local ChildAdded = p68.ChildAdded
+    p67.characterChildAddedConn = ChildAdded:Connect(function(p78) -- line: 1010
+        -- upvalues: OnCharacterChildAdded (copy)
+        OnCharacterChildAdded(p78)
+    end)
+    p67.characterChildRemovedConn = p68.ChildRemoved:Connect(function(p79) -- line: 1013
+        -- upvalues: UserInputService (copy)
+        if UserInputService.PreferredInput == Enum.PreferredInput.Touch and p79:IsA("Tool") then
+            p79.ManualActivationOnly = false
+        end
+    end)
+
+    for _, v210 in pairs(p68:GetChildren()) do
+        OnCharacterChildAdded(v210)
+    end
+
+    local PreferredInput = UserInputService:GetPropertyChangedSignal("PreferredInput")
+    p67.preferredInputChangedConnection = PreferredInput:Connect(function() -- line: 1024
+        -- upvalues: p67 (copy)
+        p67:OnPreferredInputChanged()
+    end)
+end
+
+local function Start(p80) -- line: 1029
+    p80:Enable(true)
+end
+
+v197.Start = Start
+
+local function Stop(p81) -- line: 1033
+    p81:Enable(false)
+end
+
+v197.Stop = Stop
+
+function v197.CleanupPath(_) -- line: 1037
+    -- upvalues: v142 (ref), v143 (ref), v144 (ref)
+    if v142 then
+        local v211 = v142
+        v211:Cancel()
+        v142 = nil
+    end
+    if v143 then
+        local v212 = v143
+        v212:Disconnect()
+        v143 = nil
+    end
+    if v144 then
+        local v213 = v144
+        v213:Disconnect()
+        v144 = nil
+    end
+end
+
+function v197.Enable(p83, p84, p85, p86) -- line: 1041
+    -- upvalues: v142 (ref), v143 (ref), v144 (ref), UserInputService (copy), LocalPlayer (copy), v196 (copy)
+    if p84 then
+        if not p83.running then
+            if LocalPlayer.Character then
+                p83:OnCharacterAdded(LocalPlayer.Character)
+            end
+            local CharacterAdded = LocalPlayer.CharacterAdded
+            p83.onCharacterAddedConn = CharacterAdded:Connect(function(p87) -- line: 1047
+                -- upvalues: p83 (copy)
+                p83:OnCharacterAdded(p87)
+            end)
+            p83.running = true
+        end
+        p83.touchJumpController = p86
+        if p83.touchJumpController then
+            p83.touchJumpController:Enable(p83.jumpEnabled)
+        end
+    else
+        if p83.running then
+            p83:DisconnectEvents()
+            if v142 then
+                local v214 = v142
+                v214:Cancel()
+                v142 = nil
+            end
+            if v143 then
+                local v215 = v143
+                v215:Disconnect()
+                v143 = nil
+            end
+            if v144 then
+                local v216 = v144
+                v216:Disconnect()
+                v144 = nil
+            end
+            if UserInputService.PreferredInput == Enum.PreferredInput.Touch then
+                local Character = LocalPlayer.Character
+                if Character then
+                    for _, v217 in pairs(Character:GetChildren()) do
+                        if v217:IsA("Tool") then
+                            v217.ManualActivationOnly = false
+                        end
+                    end
+                end
+            end
+            p83.running = false
+        end
+        if p83.touchJumpController and not p83.jumpEnabled then
+            p83.touchJumpController:Enable(true)
+        end
+        p83.touchJumpController = nil
+    end
+    v196.Enable(p83, p84)
+    local v218 = if not p84 or not p85 then false else p85
+    p83.wasdEnabled = v218
+    p83.enabled = p84
+end
+
+function v197.OnRenderStepped(p88, p89) -- line: 1086
+    -- upvalues: v142 (ref)
+    p88.isJumping = false
+    if v142 then
+        local v219 = v142
+        v219:OnRenderStepped(p89)
+        if v142 then
+            p88.moveVector = v142.NextActionMoveDirection
+            p88.moveVectorIsCameraRelative = false
+            if v142.NextActionJump then
+                p88.isJumping = true
+            end
+        else
+            p88.moveVector = p88.keyboardMoveVector
+            p88.moveVectorIsCameraRelative = true
+        end
+    else
+        p88.moveVector = p88.keyboardMoveVector
+        p88.moveVectorIsCameraRelative = true
+    end
+    if p88.jumpRequested then
+        p88.isJumping = true
+    end
+end
+
+local function UpdateMovement(p90, p91) -- line: 1121
+    if p91 == Enum.UserInputState.Cancel then
+        p90.keyboardMoveVector = Vector3.new(0, 0, 0)
+    elseif p90.wasdEnabled then
+        local v220 = p90.leftValue + p90.rightValue
+        local v221 = p90.forwardValue + p90.backwardValue
+        p90.keyboardMoveVector = Vector3.new(v220, 0, v221)
+    end
+end
+
+v197.UpdateMovement = UpdateMovement
+
+local function UpdateJump(_) -- line: 1130
+end
+
+v197.UpdateJump = UpdateJump
+
+function v197.SetShowPath(_, p94) -- line: 1135
+    -- upvalues: v9 (ref)
+    v9 = p94
+end
+
+function v197.GetShowPath(_) -- line: 1139
+    -- upvalues: v9 (ref)
+    return v9
+end
+
+function v197.SetWaypointTexture(_, p97) -- line: 1143
+    -- upvalues: v12 (copy)
+    v12.SetWaypointTexture(p97)
+end
+
+function v197.GetWaypointTexture(_) -- line: 1147
+    -- upvalues: v12 (copy)
+    return v12.GetWaypointTexture()
+end
+
+function v197.SetWaypointRadius(_, p100) -- line: 1151
+    -- upvalues: v12 (copy)
+    v12.SetWaypointRadius(p100)
+end
+
+function v197.GetWaypointRadius(_) -- line: 1155
+    -- upvalues: v12 (copy)
+    return v12.GetWaypointRadius()
+end
+
+function v197.SetEndWaypointTexture(_, p103) -- line: 1159
+    -- upvalues: v12 (copy)
+    v12.SetEndWaypointTexture(p103)
+end
+
+function v197.GetEndWaypointTexture(_) -- line: 1163
+    -- upvalues: v12 (copy)
+    return v12.GetEndWaypointTexture()
+end
+
+function v197.SetWaypointsAlwaysOnTop(_, p106) -- line: 1167
+    -- upvalues: v12 (copy)
+    v12.SetWaypointsAlwaysOnTop(p106)
+end
+
+function v197.GetWaypointsAlwaysOnTop(_) -- line: 1171
+    -- upvalues: v12 (copy)
+    return v12.GetWaypointsAlwaysOnTop()
+end
+
+function v197.SetFailureAnimationEnabled(_, p109) -- line: 1175
+    -- upvalues: v10 (ref)
+    v10 = p109
+end
+
+function v197.GetFailureAnimationEnabled(_) -- line: 1179
+    -- upvalues: v10 (ref)
+    return v10
+end
+
+function v197.SetIgnoredPartsTag(_, p112) -- line: 1183
+    -- upvalues: UpdateIgnoreTag (copy)
+    UpdateIgnoreTag(p112)
+end
+
+function v197.GetIgnoredPartsTag(_) -- line: 1187
+    -- upvalues: v22 (ref)
+    return v22
+end
+
+function v197.SetUseDirectPath(_, p115) -- line: 1191
+    -- upvalues: v11 (ref)
+    v11 = p115
+end
+
+function v197.GetUseDirectPath(_) -- line: 1195
+    -- upvalues: v11 (ref)
+    return v11
+end
+
+v197.SetAgentSizeIncreaseFactor = (function(p117)
+    local function SetAgentSizeIncreaseFactor(_, p119) -- line: 1199
+        -- upvalues: p117 (copy)
+        p117[1] = p119 / 100 + 1
+    end
+
+    return SetAgentSizeIncreaseFactor
+end)(t1)
+v197.GetAgentSizeIncreaseFactor = (function(p120)
+    local function GetAgentSizeIncreaseFactor(_) -- line: 1203
+        -- upvalues: p120 (copy)
+        return (p120[1] - 1) * 100
+    end
+
+    return GetAgentSizeIncreaseFactor
+end)(t1)
+
+function v197.SetUnreachableWaypointTimeout(_, p123) -- line: 1207
+    -- upvalues: n1 (ref)
+    n1 = p123
+end
+
+function v197.GetUnreachableWaypointTimeout(_) -- line: 1211
+    -- upvalues: n1 (ref)
+    return n1
+end
+
+local function SetUserJumpEnabled(p125, p126) -- line: 1215
+    p125.jumpEnabled = p126
+    if p125.touchJumpController then
+        p125.touchJumpController:Enable(p126)
+    end
+end
+
+v197.SetUserJumpEnabled = SetUserJumpEnabled
+
+local function GetUserJumpEnabled(p127) -- line: 1222
+    return p127.jumpEnabled
+end
+
+v197.GetUserJumpEnabled = GetUserJumpEnabled
+
+function v197.MoveTo(_, p129, p130, p131) -- line: 1226
+    -- upvalues: LocalPlayer (copy), Pather (copy), HandleMoveTo (copy)
+    local Character = LocalPlayer.Character
+    if Character == nil then
+        return false
+    end
+    local v222 = Pather(p129, Vector3.new(0, 1, 0), p131)
+    if not (v222 and v222:IsValidPath()) then
+        return false
+    end
+    HandleMoveTo(v222, p129, nil, Character, p130)
+    return true
+end
+
+return v197

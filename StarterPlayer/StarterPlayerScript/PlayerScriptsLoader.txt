@@ -1,0 +1,7 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerScriptsLoader
+-- Took 1.01s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+require(script.Parent:WaitForChild("PlayerModule"))

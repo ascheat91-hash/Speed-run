@@ -1,0 +1,562 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.CameraModule.Invisicam
+-- Took 1.16s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local Players = game:GetService("Players")
+local CommonUtils = script.Parent.Parent:WaitForChild("CommonUtils")
+local UserRaycastUpdateAPI2 = require(CommonUtils:WaitForChild("FlagUtil")).getUserFlag("UserRaycastUpdateAPI2")
+local t1 = {
+    LIMBS = 2,
+    MOVEMENT = 3,
+    CORNERS = 4,
+    CIRCLE1 = 5,
+    CIRCLE2 = 6,
+    LIMBMOVE = 7,
+    SMART_CIRCLE = 8,
+    CHAR_OUTLINE = 9
+}
+local t2 = {
+    Head = true,
+    ["Left Arm"] = true,
+    ["Right Arm"] = true,
+    ["Left Leg"] = true,
+    ["Right Leg"] = true,
+    LeftLowerArm = true,
+    RightLowerArm = true,
+    LeftUpperLeg = true,
+    RightUpperLeg = true
+}
+local t3 = { Vector3.new(1, 1, -1), Vector3.new(1, -1, -1), Vector3.new(-1, -1, -1), (Vector3.new(-1, 1, -1)) }
+local v1 = RaycastParams.new()
+
+v1.FilterType = Enum.RaycastFilterType.Exclude
+
+local v2 = RaycastParams.new()
+
+v2.FilterType = Enum.RaycastFilterType.Include
+
+local function AssertTypes(p1, ...) -- line: 71
+    local t4 = {}
+    local v3 = ""
+
+    for _, v4 in pairs({ ... }) do
+        t4[v4] = true
+        v3 ..= (if v3 == "" then "" else " or ") .. v4
+    end
+
+    local v5 = type(p1)
+    local v6 = t4[v5]
+    local v7 = v3 .. " type expected, got: " .. v5
+    assert(v6, v7)
+end
+
+local function Det3x3(p2, p3, p4, p5, p6, p7, p8, p9, p10) -- line: 83
+    return p2 * (p6 * p10 - p7 * p9) - p3 * (p5 * p10 - p7 * p8) + p4 * (p5 * p9 - p6 * p8)
+end
+
+local function RayIntersection(p11, p12, p13, p14) -- line: 91
+    local v8 = p12:Cross(p14)
+    local v9 = p13.X - p11.X
+    local v10 = p13.Y - p11.Y
+    local v11 = p13.Z - p11.Z
+    local X = p12.X
+    local v12 = -p14.X
+    local X2 = v8.X
+    local Y = p12.Y
+    local v13 = -p14.Y
+    local Y2 = v8.Y
+    local Z = p12.Z
+    local v14 = -p14.Z
+    local Z2 = v8.Z
+    local v15 = X * (v13 * Z2 - Y2 * v14) - v12 * (Y * Z2 - Y2 * Z) + X2 * (Y * v14 - v13 * Z)
+    if v15 ~= 0 then
+        local v16 = -p14.X
+        local X = v8.X
+        local v17 = -p14.Y
+        local Y = v8.Y
+        local v18 = -p14.Z
+        local Z = v8.Z
+        local v19 = (v9 * (v17 * Z - Y * v18) - v16 * (v10 * Z - Y * v11) + X * (v10 * v18 - v17 * v11)) / v15
+        local X2 = p12.X
+        local X3 = v8.X
+        local Y2 = p12.Y
+        local Y3 = v8.Y
+        local Z2 = p12.Z
+        local Z3 = v8.Z
+        local v20 = (X2 * (v10 * Z3 - Y3 * v11) - v9 * (Y2 * Z3 - Y3 * Z2) + X3 * (Y2 * v11 - v10 * Z2)) / v15
+        local v21 = p11 + v19 * p12
+        local v22 = p13 + v20 * p14
+        local v23 = v21 + (v22 - v21) * 0.5
+        if (v22 - v21).Magnitude < 0.25 then
+            return v23
+        end
+    end
+    return (Vector3.new(0, 0, 0))
+end
+
+local v24 = require(script.Parent:WaitForChild("BaseOcclusion"))
+local t5 = {}
+local v25 = setmetatable(t5, v24)
+
+v25.__index = v25
+
+function v25.new() -- line: 124
+    -- upvalues: t1 (copy), v24 (copy), v25 (copy)
+    local v26 = v24.new()
+    local v27 = setmetatable(v26, v25)
+    v27.char = nil
+    v27.humanoidRootPart = nil
+    v27.torsoPart = nil
+    v27.headPart = nil
+    v27.childAddedConn = nil
+    v27.childRemovedConn = nil
+    v27.behaviors = {}
+    v27.behaviors[t1.LIMBS] = v27.LimbBehavior
+    v27.behaviors[t1.MOVEMENT] = v27.MoveBehavior
+    v27.behaviors[t1.CORNERS] = v27.CornerBehavior
+    v27.behaviors[t1.CIRCLE1] = v27.CircleBehavior
+    v27.behaviors[t1.CIRCLE2] = v27.CircleBehavior
+    v27.behaviors[t1.LIMBMOVE] = v27.LimbMoveBehavior
+    v27.behaviors[t1.SMART_CIRCLE] = v27.SmartCircleBehavior
+    v27.behaviors[t1.CHAR_OUTLINE] = v27.CharacterOutlineBehavior
+    v27.mode = t1.SMART_CIRCLE
+    v27.behaviorFunction = v27.SmartCircleBehavior
+    v27.savedHits = {}
+    v27.trackedLimbs = {}
+    v27.camera = game.Workspace.CurrentCamera
+    v27.enabled = false
+    return v27
+end
+
+local function Enable(p15, p16) -- line: 157
+    p15.enabled = p16
+    if not p16 then
+        p15:Cleanup()
+    end
+end
+
+v25.Enable = Enable
+
+local function GetOcclusionMode(_) -- line: 165
+    return Enum.DevCameraOcclusionMode.Invisicam
+end
+
+v25.GetOcclusionMode = GetOcclusionMode
+
+local function LimbBehavior(p18, p19) -- line: 170
+    for v28, _ in pairs(p18.trackedLimbs) do
+        p19[#p19 + 1] = v28.Position
+    end
+end
+
+v25.LimbBehavior = LimbBehavior
+
+local function MoveBehavior(p20, p21) -- line: 176
+    for i = 1, 3 do
+        local Position = p20.humanoidRootPart.Position
+        local Velocity = p20.humanoidRootPart.Velocity
+        local X = Velocity.X
+        local Z = Velocity.Z
+        local v29 = Vector3.new(X, 0, Z).Magnitude / 2
+        local v30 = (i - 1) * p20.humanoidRootPart.CFrame.lookVector * v29
+        p21[#p21 + 1] = Position + v30
+    end
+end
+
+v25.MoveBehavior = MoveBehavior
+
+function v25.CornerBehavior(p22, p23) -- line: 185
+    -- upvalues: t3 (copy)
+    local CFrame = p22.humanoidRootPart.CFrame
+    local Position = CFrame.Position
+    local v31 = CFrame - Position
+    local v32 = p22.char:GetExtentsSize() / 2
+    p23[#p23 + 1] = Position
+    local v33 = #t3
+
+    for i = 1, v33 do
+        p23[#p23 + 1] = Position + v31 * (v32 * t3[i])
+    end
+end
+
+function v25.CircleBehavior(p24, p25) -- line: 196
+    -- upvalues: t1 (copy)
+    local v34
+    if p24.mode == t1.CIRCLE1 then
+        v34 = p24.humanoidRootPart.CFrame
+    else
+        local CoordinateFrame = p24.camera.CoordinateFrame
+        v34 = CoordinateFrame - CoordinateFrame.Position + p24.humanoidRootPart.Position
+    end
+    p25[#p25 + 1] = v34.Position
+
+    for i = 0, 9 do
+        local v35 = 0.6283185307179586 * i
+        local v36 = math.cos(v35)
+        local v37 = math.sin(v35)
+        local v38 = Vector3.new(v36, v37, 0) * 3
+        p25[#p25 + 1] = v34 * v38
+    end
+end
+
+local function LimbMoveBehavior(p26, p27) -- line: 212
+    p26:LimbBehavior(p27)
+    p26:MoveBehavior(p27)
+end
+
+v25.LimbMoveBehavior = LimbMoveBehavior
+
+function v25.CharacterOutlineBehavior(p28, p29) -- line: 217
+    -- upvalues: UserRaycastUpdateAPI2 (copy), v2 (copy)
+    local unit = p28.torsoPart.CFrame.upVector.unit
+    local unit2 = p28.torsoPart.CFrame.rightVector.unit
+    p29[#p29 + 1] = p28.torsoPart.CFrame.p
+    p29[#p29 + 1] = p28.torsoPart.CFrame.p + unit
+    p29[#p29 + 1] = p28.torsoPart.CFrame.p - unit
+    p29[#p29 + 1] = p28.torsoPart.CFrame.p + unit2
+    p29[#p29 + 1] = p28.torsoPart.CFrame.p - unit2
+    if p28.headPart then
+        p29[#p29 + 1] = p28.headPart.CFrame.p
+    end
+    local new = CFrame.new
+    local X = p28.camera.CoordinateFrame.lookVector.X
+    local Z = p28.camera.CoordinateFrame.lookVector.Z
+    local v39 = new(Vector3.new(0, 0, 0), (Vector3.new(X, 0, Z)))
+    local Position = p28.torsoPart and p28.torsoPart.Position or p28.humanoidRootPart.Position
+    local t6 = { p28.torsoPart }
+    if p28.headPart then
+        t6[#t6 + 1] = p28.headPart
+    end
+
+    for i = 1, 24 do
+        local v40 = 6.283185307179586 * i / 24
+        local v41 = math.cos(v40)
+        local v42 = math.sin(v40)
+        local v43 = v39 * (Vector3.new(v41, v42, 0) * 3)
+        local X = v43.X
+        local Y = v43.Y
+        local v44 = math.max(Y, -2.25)
+        local Z = v43.Z
+        local v45 = Vector3.new(X, v44, Z)
+        if UserRaycastUpdateAPI2 then
+            v2.FilterDescendantsInstances = t6
+            local v46 = game.Workspace:Raycast(Position + v45, -3 * v45, v2)
+            if v46 then
+                local Position2 = v46.Position
+                p29[#p29 + 1] = Position2 + 0.2 * (Position - Position2).unit
+            end
+        else
+            local v47 = Ray.new(Position + v45, -3 * v45)
+            local v48, v49 = game.Workspace:FindPartOnRayWithWhitelist(v47, t6, false)
+            if v48 then
+                p29[#p29 + 1] = v49 + 0.2 * (Position - v49).unit
+            end
+        end
+    end
+end
+
+function v25.SmartCircleBehavior(p30, p31) -- line: 268
+    -- upvalues: UserRaycastUpdateAPI2 (copy), v1 (copy), RayIntersection (copy)
+    local unit = p30.torsoPart.CFrame.upVector.unit
+    local unit2 = p30.torsoPart.CFrame.rightVector.unit
+    p31[#p31 + 1] = p30.torsoPart.CFrame.p
+    p31[#p31 + 1] = p30.torsoPart.CFrame.p + unit
+    p31[#p31 + 1] = p30.torsoPart.CFrame.p - unit
+    p31[#p31 + 1] = p30.torsoPart.CFrame.p + unit2
+    p31[#p31 + 1] = p30.torsoPart.CFrame.p - unit2
+    if p30.headPart then
+        p31[#p31 + 1] = p30.headPart.CFrame.p
+    end
+    local v50 = p30.camera.CFrame - p30.camera.CFrame.p
+    local v51 = Vector3.new(0, 0.5, 0) + (p30.torsoPart and p30.torsoPart.Position or p30.humanoidRootPart.Position)
+
+    for i = 1, 24 do
+        local v52 = 0.2617993877991494 * i - 1.5707963267948966
+        local v53 = math.cos(v52)
+        local v54 = math.sin(v52)
+        local v55 = v51 + v50 * (Vector3.new(v53, v54, 0) * 2.5)
+        local v56 = v55 - p30.camera.CFrame.p
+        if UserRaycastUpdateAPI2 then
+            v1.FilterDescendantsInstances = { p30.char }
+            local v57 = game.Workspace:Raycast(v51, v55 - v51, v1)
+            local v58
+            if v57 then
+                local Position = v57.Position
+                local Normal = v57.Normal
+                local v59 = Position + 0.1 * Normal.unit
+                local v60 = v59 - v51
+                local unit = v60:Cross(v56).unit:Cross(Normal).unit
+                local unit2 = (v59 - p30.camera.CFrame.p).unit
+                if v60.unit:Dot(-unit) < v60.unit:Dot(unit2) then
+                    v58 = RayIntersection(v59, unit, v55, v56)
+                    if v58.Magnitude > 0 then
+                        local v61 = game.Workspace:Raycast(v59, v58 - v59, v1)
+                        if v61 then
+                            v58 = v61.Position + 0.1 * v61.Normal.Unit
+                        end
+                    else
+                        v58 = v59
+                    end
+                else
+                    v58 = v59
+                end
+                local v62 = game.Workspace:Raycast(v51, v58 - v51, v1)
+                if v62 then
+                    v58 = v62.Position - 0.1 * (v58 - v51).unit
+                end
+            else
+                v58 = v55
+            end
+            p31[#p31 + 1] = v58
+        else
+            local v63 = Ray.new(v51, v55 - v51)
+            local v64, v65, v66 = game.Workspace:FindPartOnRayWithIgnoreList(v63, { p30.char }, false, false)
+            local v67
+            if v64 then
+                local v68 = v65 + 0.1 * v66.unit
+                local v69 = v68 - v51
+                local unit = v69:Cross(v56).unit:Cross(v66).unit
+                local unit2 = (v68 - p30.camera.CFrame.p).unit
+                local v70
+                if v69.unit:Dot(-unit) < v69.unit:Dot(unit2) then
+                    v70 = RayIntersection(v68, unit, v55, v56)
+                    if v70.Magnitude > 0 then
+                        local v71 = Ray.new(v68, v70 - v68)
+                        local v72, v73, v74 = game.Workspace:FindPartOnRayWithIgnoreList(v71, { p30.char }, false, false)
+                        if v72 then
+                            v70 = v73 + 0.1 * v74.unit
+                        end
+                    else
+                        v70 = v68
+                    end
+                else
+                    v70 = v68
+                end
+                local v75 = Ray.new(v51, v70 - v51)
+                local v76, v77 = game.Workspace:FindPartOnRayWithIgnoreList(v75, { p30.char }, false, false)
+                if v76 then
+                    v67 = v77 - 0.1 * (v70 - v51).unit
+                else
+                    v67 = v70
+                end
+            else
+                v67 = v55
+            end
+            p31[#p31 + 1] = v67
+        end
+    end
+end
+
+local function CheckTorsoReference(p32) -- line: 403
+    if p32.char then
+        p32.torsoPart = p32.char:FindFirstChild("Torso")
+        if not p32.torsoPart then
+            p32.torsoPart = p32.char:FindFirstChild("UpperTorso")
+            if not p32.torsoPart then
+                p32.torsoPart = p32.char:FindFirstChild("HumanoidRootPart")
+            end
+        end
+        p32.headPart = p32.char:FindFirstChild("Head")
+    end
+end
+
+v25.CheckTorsoReference = CheckTorsoReference
+
+function v25.CharacterAdded(p33, p34, p35) -- line: 417
+    -- upvalues: Players (copy), t2 (copy)
+    if p35 == Players.LocalPlayer then
+        if p33.childAddedConn then
+            p33.childAddedConn:Disconnect()
+            p33.childAddedConn = nil
+        end
+        if p33.childRemovedConn then
+            p33.childRemovedConn:Disconnect()
+            p33.childRemovedConn = nil
+        end
+        p33.char = p34
+        p33.trackedLimbs = {}
+
+        local function childAdded(p36) -- line: 433
+            -- upvalues: p33 (copy), t2 (copy)
+            if p36:IsA("BasePart") then
+                if t2[p36.Name] then
+                    p33.trackedLimbs[p36] = true
+                end
+                if p36.Name == "Torso" or p36.Name == "UpperTorso" then
+                    p33.torsoPart = p36
+                end
+                if p36.Name == "Head" then
+                    p33.headPart = p36
+                end
+            end
+        end
+
+        local function childRemoved(p37) -- line: 449
+            -- upvalues: p33 (copy)
+            p33.trackedLimbs[p37] = nil
+            p33:CheckTorsoReference()
+        end
+
+        p33.childAddedConn = p34.ChildAdded:Connect(childAdded)
+        p33.childRemovedConn = p34.ChildRemoved:Connect(childRemoved)
+
+        for _, v78 in pairs(p33.char:GetChildren()) do
+            if v78:IsA("BasePart") then
+                if t2[v78.Name] then
+                    p33.trackedLimbs[v78] = true
+                end
+                if v78.Name == "Torso" or v78.Name == "UpperTorso" then
+                    p33.torsoPart = v78
+                end
+                if v78.Name == "Head" then
+                    p33.headPart = v78
+                end
+            end
+        end
+    end
+end
+
+function v25.SetMode(p38, p39) -- line: 463
+    -- upvalues: t1 (copy), AssertTypes (copy)
+    AssertTypes(p39, "number")
+
+    for _, v79 in pairs(t1) do
+        if v79 == p39 then
+            p38.mode = p39
+            p38.behaviorFunction = p38.behaviors[p38.mode]
+            return
+        end
+    end
+
+    error("Invalid mode number")
+end
+
+local function GetObscuredParts(p40) -- line: 475
+    return p40.savedHits
+end
+
+v25.GetObscuredParts = GetObscuredParts
+
+local function Cleanup(p41) -- line: 480
+    for v80, v81 in pairs(p41.savedHits) do
+        v80.LocalTransparencyModifier = v81
+    end
+end
+
+v25.Cleanup = Cleanup
+
+local function Update(p42, _, p44, p45) -- line: 486
+    if p42.enabled and p42.char then
+        p42.camera = game.Workspace.CurrentCamera
+        if not p42.humanoidRootPart then
+            local Humanoid = p42.char:FindFirstChildOfClass("Humanoid")
+            if not (Humanoid and Humanoid.RootPart) then
+                p42.humanoidRootPart = p42.char:FindFirstChild("HumanoidRootPart")
+                if not p42.humanoidRootPart then
+                    return p44, p45
+                end
+            else
+                p42.humanoidRootPart = Humanoid.RootPart
+            end
+            local v82
+            v82 = p42.humanoidRootPart.AncestryChanged:Connect(function(p46, p47) -- line: 511
+                -- upvalues: v82 (ref), p42 (copy)
+                if p46 == p42.humanoidRootPart and not p47 then
+                    p42.humanoidRootPart = nil
+                    if v82 and v82.Connected then
+                        local v83 = v82
+                        v83:Disconnect()
+                        v82 = nil
+                    end
+                end
+            end)
+        end
+        if not p42.torsoPart then
+            p42:CheckTorsoReference()
+            if not p42.torsoPart then
+                return p44, p45
+            end
+        end
+        local t7 = {}
+        p42.behaviorFunction(p42, t7)
+        local t8 = {}
+        local t9 = { p42.char }
+        local t10 = {}
+        local headPart = p42.headPart
+        local p = headPart and p42.headPart.CFrame.p or t7[1]
+        local torsoPart = p42.torsoPart
+        local p2 = torsoPart and p42.torsoPart.CFrame.p or t7[2]
+        local v84 = p42.camera:GetPartsObscuringTarget({ p, p2 }, t9)
+        local v85 = #v84
+        local n1 = 0
+
+        for i = 1, v85 do
+            local v86 = v84[i]
+            n1 += 1
+            t10[v86] = true
+
+            for _, v87 in pairs(v86:GetChildren()) do
+                if v87:IsA("Decal") or v87:IsA("Texture") then
+                    n1 += 1
+                    break
+                end
+            end
+        end
+
+        local v88, v89
+        if n1 > 0 then
+            local v90 = 0.375 / n1 + 0.375
+            local v91 = 1 / n1
+            v88 = math.pow(v90, v91)
+            local v92 = 0.25 / n1 + 0.25
+            local v93 = 1 / n1
+            v89 = math.pow(v92, v93)
+        else
+            v88 = 0.75
+            v89 = 0.75
+        end
+        local v94 = p42.camera:GetPartsObscuringTarget(t7, t9)
+        local t11 = {}
+        local v95 = #v94
+
+        for i = 1, v95 do
+            local v96 = v94[i]
+            if not t10[v96] or not v88 then
+                t11[v96] = v89
+            else
+                t11[v96] = v88
+            end
+            if v96.Transparency < t11[v96] then
+                t8[v96] = true
+                if not p42.savedHits[v96] then
+                    p42.savedHits[v96] = v96.LocalTransparencyModifier
+                end
+            end
+
+            for _, v97 in pairs(v96:GetChildren()) do
+                if (v97:IsA("Decal") or v97:IsA("Texture")) and v97.Transparency < t11[v96] then
+                    t11[v97] = t11[v96]
+                    t8[v97] = true
+                    if not p42.savedHits[v97] then
+                        p42.savedHits[v97] = v97.LocalTransparencyModifier
+                    end
+                end
+            end
+        end
+
+        for v98, v99 in pairs(p42.savedHits) do
+            if t8[v98] then
+                v98.LocalTransparencyModifier = v98.Transparency < 1 and (t11[v98] - v98.Transparency) / (1 - v98.Transparency) or 0
+            else
+                v98.LocalTransparencyModifier = v99
+                p42.savedHits[v98] = nil
+            end
+        end
+    end
+    return p44, p45
+end
+
+v25.Update = Update
+return v25

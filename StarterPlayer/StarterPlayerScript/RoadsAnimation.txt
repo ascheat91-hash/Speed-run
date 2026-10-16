@@ -1,0 +1,25 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.RoadsAnimation
+-- Took 0.96s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local RunService = game:GetService("RunService")
+local Roads = workspace:WaitForChild("Stages"):WaitForChild("Lobby"):WaitForChild("Roads")
+local t1 = {}
+
+for i = 1, 6 do
+    local Texture = Roads:WaitForChild("Road" .. i):WaitForChild("Road"):FindFirstChildOfClass("Texture")
+    if Texture then
+        table.insert(t1, Texture)
+    end
+end
+
+RunService.RenderStepped:Connect(function(p1) -- line: 20
+    -- upvalues: t1 (copy)
+    for _, v1 in ipairs(t1) do
+        if v1.Parent then
+            v1.OffsetStudsV -= p1 * 5
+        end
+    end
+end)

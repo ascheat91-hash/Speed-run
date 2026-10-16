@@ -1,0 +1,23 @@
+-- Script Path: game:GetService("StarterPlayer").StarterCharacterScripts.WindEffect
+-- Took 1.34s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+local HumanoidRootPart = script.Parent:WaitForChild("HumanoidRootPart")
+local v1 = ReplicatedStorage:WaitForChild("Assets"):WaitForChild("Effects"):WaitForChild("WindEmitter"):Clone()
+
+v1.Parent = HumanoidRootPart
+RunService.RenderStepped:Connect(function() -- line: 17
+    -- upvalues: HumanoidRootPart (copy), v1 (copy)
+    local v2 = (HumanoidRootPart.AssemblyLinearVelocity.Magnitude - 15) / 100
+    local v3 = math.clamp(v2, 0, 0.25)
+    v1.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1 - v3),
+        NumberSequenceKeypoint.new(1, 1)
+    })
+end)

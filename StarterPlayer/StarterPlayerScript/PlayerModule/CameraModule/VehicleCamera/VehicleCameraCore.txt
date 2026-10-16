@@ -1,0 +1,181 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.CameraModule.VehicleCamera.VehicleCameraCore
+-- Took 1.01s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local CameraUtils = require(script.Parent.Parent.CameraUtils)
+local VehicleCameraConfig = require(script.Parent.VehicleCameraConfig)
+local map = CameraUtils.map
+local mapClamp = CameraUtils.mapClamp
+local sanitizeAngle = CameraUtils.sanitizeAngle
+
+local function getYaw(p1) -- line: 10
+    -- upvalues: sanitizeAngle (copy)
+    local _, v1 = p1:toEulerAnglesYXZ()
+    return sanitizeAngle(v1)
+end
+
+local function getPitch(p2) -- line: 16
+    -- upvalues: sanitizeAngle (copy)
+    local v2 = p2:toEulerAnglesYXZ()
+    return sanitizeAngle(v2)
+end
+
+local function stepSpringAxis(p3, p4, p5, p6, p7) -- line: 22
+    -- upvalues: sanitizeAngle (copy)
+    local v3 = sanitizeAngle(p6 - p5)
+    local v4 = -p4 * p3
+    local v5 = math.exp(v4)
+    return sanitizeAngle((v3 * (1 + p4 * p3) + p7 * p3) * v5 + p5), (p7 * (1 - p4 * p3) - v3 * (p4 * p4 * p3)) * v5
+end
+
+local t1 = {}
+
+t1.__index = t1
+
+function t1.new(p8, p9, p10) -- line: 36
+    -- upvalues: t1 (copy)
+    local t2 = {
+        fRising = p8,
+        fFalling = p9,
+        g = p10,
+        p = p10,
+        v = p10 * 0
+    }
+    return (setmetatable(t2, t1))
+end
+
+local function step(p11, p12) -- line: 46
+    local fRising = p11.fRising
+    local fFalling = p11.fFalling
+    local g = p11.g
+    local p = p11.p
+    local v = p11.v
+    if v > 0 and fRising then
+        fFalling = fRising
+    end
+    local v6 = 6.283185307179586 * fFalling
+    local v7 = p - g
+    local v8 = -v6 * p12
+    local v9 = math.exp(v8)
+    local v10 = (v7 * (1 + v6 * p12) + v * p12) * v9 + g
+    local v11 = (v * (1 - v6 * p12) - v7 * (v6 * v6 * p12)) * v9
+    p11.p = v10
+    p11.v = v11
+    return v10
+end
+
+t1.step = step
+
+local t3 = {}
+
+t3.__index = t3
+
+function t3.new(p13) -- line: 72
+    -- upvalues: VehicleCameraConfig (copy), sanitizeAngle (copy), t1 (copy), t3 (copy)
+    local v12 = typeof(p13) == "CFrame"
+    assert(v12)
+    local t4 = {
+        yawV = 0,
+        pitchV = 0
+    }
+    local _, v13 = p13:toEulerAnglesYXZ()
+    t4.yawG = sanitizeAngle(v13)
+    local _, v14 = p13:toEulerAnglesYXZ()
+    t4.yawP = sanitizeAngle(v14)
+    local v15 = p13:toEulerAnglesYXZ()
+    t4.pitchG = sanitizeAngle(v15)
+    local v16 = p13:toEulerAnglesYXZ()
+    t4.pitchP = sanitizeAngle(v16)
+    t4.fSpringYaw = t1.new(VehicleCameraConfig.yawReponseDampingRising, VehicleCameraConfig.yawResponseDampingFalling, 0)
+    t4.fSpringPitch = t1.new(VehicleCameraConfig.pitchReponseDampingRising, VehicleCameraConfig.pitchResponseDampingFalling, 0)
+    return (setmetatable(t4, t3))
+end
+
+function t3.setGoal(p14, p15) -- line: 99
+    -- upvalues: sanitizeAngle (copy)
+    local v17 = typeof(p15) == "CFrame"
+    assert(v17)
+    local _, v18 = p15:toEulerAnglesYXZ()
+    p14.yawG = sanitizeAngle(v18)
+    local v19 = p15:toEulerAnglesYXZ()
+    p14.pitchG = sanitizeAngle(v19)
+end
+
+local function getCFrame(p16) -- line: 106
+    return CFrame.fromEulerAnglesYXZ(p16.pitchP, p16.yawP, 0)
+end
+
+t3.getCFrame = getCFrame
+
+function t3.step(p17, p18, p19, p20, p21) -- line: 110
+    -- upvalues: VehicleCameraConfig (copy), map (copy), mapClamp (copy), sanitizeAngle (copy)
+    local v20 = typeof(p18) == "number"
+    assert(v20)
+    local v21 = typeof(p20) == "number"
+    assert(v21)
+    local v22 = typeof(p19) == "number"
+    assert(v22)
+    local v23 = typeof(p21) == "number"
+    assert(v23)
+    local fSpringYaw = p17.fSpringYaw
+    local fSpringPitch = p17.fSpringPitch
+    local v24 = map(p21, 0, 1, p20, 0)
+    local cutoffMinAngularVelYaw = VehicleCameraConfig.cutoffMinAngularVelYaw
+    local v25 = math.rad(cutoffMinAngularVelYaw)
+    local cutoffMaxAngularVelYaw = VehicleCameraConfig.cutoffMaxAngularVelYaw
+    fSpringYaw.g = mapClamp(v24, v25, math.rad(cutoffMaxAngularVelYaw), 1, 0)
+    local v26 = map(p21, 0, 1, p19, 0)
+    local cutoffMinAngularVelPitch = VehicleCameraConfig.cutoffMinAngularVelPitch
+    local v27 = math.rad(cutoffMinAngularVelPitch)
+    local cutoffMaxAngularVelPitch = VehicleCameraConfig.cutoffMaxAngularVelPitch
+    fSpringPitch.g = mapClamp(v26, v27, math.rad(cutoffMaxAngularVelPitch), 1, 0)
+    local v28 = 6.283185307179586 * VehicleCameraConfig.yawStiffness * fSpringYaw:step(p18)
+    local v29 = 6.283185307179586 * VehicleCameraConfig.pitchStiffness * fSpringPitch:step(p18) * map(p21, 0, 1, 1, VehicleCameraConfig.firstPersonResponseMul)
+    local v30 = v28 * map(p21, 0, 1, 1, VehicleCameraConfig.firstPersonResponseMul)
+    local yawG = p17.yawG
+    local yawP = p17.yawP
+    local yawV = p17.yawV
+    local v31 = sanitizeAngle(yawP - yawG)
+    local v32 = -v30 * p18
+    local v33 = math.exp(v32)
+    local v34 = sanitizeAngle((v31 * (1 + v30 * p18) + yawV * p18) * v33 + yawG)
+    local v35 = (yawV * (1 - v30 * p18) - v31 * (v30 * v30 * p18)) * v33
+    p17.yawP = v34
+    p17.yawV = v35
+    local pitchG = p17.pitchG
+    local pitchP = p17.pitchP
+    local pitchV = p17.pitchV
+    local v36 = sanitizeAngle(pitchP - pitchG)
+    local v37 = -v29 * p18
+    local v38 = math.exp(v37)
+    local v39 = sanitizeAngle((v36 * (1 + v29 * p18) + pitchV * p18) * v38 + pitchG)
+    local v40 = (pitchV * (1 - v29 * p18) - v36 * (v29 * v29 * p18)) * v38
+    p17.pitchP = v39
+    p17.pitchV = v40
+    return p17:getCFrame()
+end
+
+local t5 = {}
+
+t5.__index = t5
+
+function t5.new(p22) -- line: 167
+    -- upvalues: t3 (copy), t5 (copy)
+    local t6 = { vrs = t3.new(p22) }
+    return (setmetatable(t6, t5))
+end
+
+local function step2(p23, p24, p25, p26, p27) -- line: 173
+    return p23.vrs:step(p24, p25, p26, p27)
+end
+
+t5.step = step2
+
+local function setTransform(p28, p29) -- line: 177
+    p28.vrs:setGoal(p29)
+end
+
+t5.setTransform = setTransform
+return t5

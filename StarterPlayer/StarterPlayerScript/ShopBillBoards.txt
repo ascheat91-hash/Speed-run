@@ -1,0 +1,168 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.ShopBillBoards
+-- Took 0.97s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Shoes = require(ReplicatedStorage.Configs.Shoes)
+local Gloves = require(ReplicatedStorage.Configs.Gloves)
+local Tracers = require(ReplicatedStorage.Configs.Tracers)
+local PlayerInventory = ReplicatedStorage.Remotes.PlayerInventory
+local LocalPlayer = Players.LocalPlayer
+local ShopPriceBilllboard = ReplicatedStorage:WaitForChild("Assets"):WaitForChild("ShopPriceBilllboard")
+local t1 = {
+    EquippedShoes = "Default",
+    EquippedGloves = "Default",
+    EquippedTracer = "Default"
+}
+local v1 = t1
+
+t1.OwnedShoes = {}
+t1.OwnedGloves = {}
+t1.OwnedTracers = {}
+
+local function FormatNumber(p1) -- line: 21
+    if p1 < 1000 then
+        local v2 = math.floor(p1)
+        return (tostring(v2))
+    end
+    local t2 = { "K", "M", "B", "T", "Qa", "Qi" }
+    local v3 = math.log10(p1) / 3
+    local v4 = math.floor(v3)
+    local v5 = #t2
+    local v6 = math.clamp(v4, 1, v5)
+    local v7 = p1 / 10 ^ (v6 * 3) * 10
+    local v8 = math.floor(v7) / 10
+    if v8 % 1 == 0 then
+        v8 = math.floor(v8)
+    end
+    return tostring(v8) .. t2[v6]
+end
+
+local function updateShoes() -- line: 44
+    -- upvalues: v1 (ref), Shoes (copy), ShopPriceBilllboard (copy), FormatNumber (copy)
+    for v9, v10 in pairs(Shoes) do
+        local v11 = workspace.Stages.Lobby.Shoes:FindFirstChild(v10.Name)
+        if v11 then
+            local v12 = v11:WaitForChild("Podium", 3)
+            if v12 then
+                local ShopPriceBilllboard2 = v12:FindFirstChild("ShopPriceBilllboard")
+                if ShopPriceBilllboard2 then
+                    ShopPriceBilllboard2:Destroy()
+                end
+                local v13 = ShopPriceBilllboard:Clone()
+                v13.Parent = v11:WaitForChild("Podium")
+                local Description = v13:WaitForChild("Description")
+                Description.TextColor3 = v10.Color
+                local Price = v13:WaitForChild("Price")
+                if v10.WalkXP and not v10.CoinReward then
+                    Description.Text = v10.WalkXP.Mult .. "x EXP"
+                end
+                if not v10.WalkXP and v10.CoinReward then
+                    Description.Text = v10.CoinReward.Mult .. "x Cash"
+                end
+                if v10.WalkXP and v10.CoinReward then
+                    Description.Text = v10.WalkXP.Mult .. "x EXP/Cash"
+                end
+                if v1.EquippedShoes == v9 then
+                    Price.Text = "EQIPED"
+                elseif v1.OwnedShoes[v9] then
+                    Price.Text = "OWNED"
+                else
+                    Price.Text = FormatNumber(v10.Price) .. " Cash"
+                end
+            end
+        end
+    end
+end
+
+local function updateGloves() -- line: 92
+    -- upvalues: v1 (ref), Gloves (copy), ShopPriceBilllboard (copy), FormatNumber (copy)
+    for v14, v15 in pairs(Gloves) do
+        local v16 = workspace.Stages.Lobby.Gloves:FindFirstChild(v15.Name)
+        if v16 then
+            local v17 = v16:WaitForChild("Podium", 3)
+            if v17 then
+                local ShopPriceBilllboard2 = v17:FindFirstChild("ShopPriceBilllboard")
+                if ShopPriceBilllboard2 then
+                    ShopPriceBilllboard2:Destroy()
+                end
+                local v18 = ShopPriceBilllboard:Clone()
+                v18.Parent = v16:WaitForChild("Podium")
+                local Description = v18:WaitForChild("Description")
+                Description.TextColor3 = v15.Color
+                local Price = v18:WaitForChild("Price")
+                if v15.WalkXP and not v15.CoinReward then
+                    Description.Text = v15.WalkXP.Mult .. "x EXP"
+                end
+                if not v15.WalkXP and v15.CoinReward then
+                    Description.Text = v15.CoinReward.Mult .. "x Cash"
+                end
+                if v15.WalkXP and v15.CoinReward then
+                    Description.Text = v15.WalkXP.Mult .. "x EXP/Cash"
+                end
+                if v1.EquippedGloves == v14 then
+                    Price.Text = "EQIPED"
+                elseif v1.OwnedGloves[v14] then
+                    Price.Text = "OWNED"
+                else
+                    Price.Text = FormatNumber(v15.Price) .. " Cash"
+                end
+            end
+        end
+    end
+end
+
+local function updateTracers() -- line: 140
+    -- upvalues: v1 (ref), Tracers (copy), ShopPriceBilllboard (copy), FormatNumber (copy)
+    for v19, v20 in pairs(Tracers) do
+        local v21 = workspace.Stages.Lobby.Tracers:FindFirstChild(v20.Name)
+        if v21 then
+            local v22 = v21:WaitForChild("Podium", 3)
+            if v22 then
+                local ShopPriceBilllboard2 = v22:FindFirstChild("ShopPriceBilllboard")
+                if ShopPriceBilllboard2 then
+                    ShopPriceBilllboard2:Destroy()
+                end
+                local v23 = ShopPriceBilllboard:Clone()
+                v23.Parent = v21:WaitForChild("Podium")
+                local Description = v23:WaitForChild("Description")
+                Description.TextColor3 = v20.Color
+                local Price = v23:WaitForChild("Price")
+                if v20.WalkXP and not v20.CoinReward then
+                    Description.Text = v20.WalkXP.Mult .. "x EXP"
+                end
+                if not v20.WalkXP and v20.CoinReward then
+                    Description.Text = v20.CoinReward.Mult .. "x Cash"
+                end
+                if v20.WalkXP and v20.CoinReward then
+                    Description.Text = v20.WalkXP.Mult .. "x EXP/Cash"
+                end
+                if v1.EquippedTracer == v19 then
+                    Price.Text = "EQIPED"
+                elseif v1.OwnedTracers[v19] then
+                    Price.Text = "OWNED"
+                else
+                    Price.Text = FormatNumber(v20.Price) .. " Cash"
+                end
+            end
+        end
+    end
+end
+
+local function updateShop() -- line: 188
+    -- upvalues: updateShoes (copy), updateGloves (copy), updateTracers (copy)
+    updateShoes()
+    updateGloves()
+    updateTracers()
+end
+
+PlayerInventory.OnClientEvent:Connect(function(p2) -- line: 194
+    -- upvalues: v1 (ref), updateShoes (copy), updateGloves (copy), updateTracers (copy)
+    v1 = p2
+    updateShoes()
+    updateGloves()
+    updateTracers()
+end)

@@ -1,0 +1,229 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.CameraModule.TransparencyController
+-- Took 0.63s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local VRService = game:GetService("VRService")
+local t1 = {
+    "BasePart",
+    "Decal",
+    "Beam",
+    "ParticleEmitter",
+    "Trail",
+    "Fire",
+    "Smoke",
+    "Sparkles",
+    "Explosion"
+}
+local v1 = require(script.Parent:WaitForChild("CameraUtils"))
+local t2 = {}
+
+t2.__index = t2
+
+function t2.new() -- line: 29
+    -- upvalues: t2 (copy)
+    local t3 = {}
+    local v2 = setmetatable(t3, t2)
+    v2.transparencyDirty = false
+    v2.enabled = false
+    v2.lastTransparency = nil
+    v2.descendantAddedConn = nil
+    v2.descendantRemovingConn = nil
+    v2.toolDescendantAddedConns = {}
+    v2.toolDescendantRemovingConns = {}
+    v2.cachedParts = {}
+    return v2
+end
+
+local function HasToolAncestor(p1, p2) -- line: 45
+    if p2.Parent == nil then
+        return false
+    end
+    local Parent = p2.Parent
+    assert(Parent, "")
+    return p2.Parent:IsA("Tool") or p1:HasToolAncestor(p2.Parent)
+end
+
+t2.HasToolAncestor = HasToolAncestor
+
+function t2.IsValidPartToModify(p3, p4) -- line: 51
+    -- upvalues: t1 (copy)
+    for _, v3 in t1 do
+        if p4:IsA(v3) then
+            return not p3:HasToolAncestor(p4)
+        end
+    end
+
+    return false
+end
+
+local function CachePartsRecursive(p5, p6) -- line: 61
+    if p6 then
+        if p5:IsValidPartToModify(p6) then
+            p5.cachedParts[p6] = true
+            p5.transparencyDirty = true
+        end
+
+        for _, v4 in pairs(p6:GetChildren()) do
+            p5:CachePartsRecursive(v4)
+        end
+    end
+end
+
+t2.CachePartsRecursive = CachePartsRecursive
+
+local function TeardownTransparency(p7) -- line: 73
+    for v5, _ in pairs(p7.cachedParts) do
+        v5.LocalTransparencyModifier = 0
+    end
+
+    p7.cachedParts = {}
+    p7.transparencyDirty = true
+    p7.lastTransparency = nil
+    if p7.descendantAddedConn then
+        p7.descendantAddedConn:disconnect()
+        p7.descendantAddedConn = nil
+    end
+    if p7.descendantRemovingConn then
+        p7.descendantRemovingConn:disconnect()
+        p7.descendantRemovingConn = nil
+    end
+
+    for v6, v7 in pairs(p7.toolDescendantAddedConns) do
+        v7:Disconnect()
+        p7.toolDescendantAddedConns[v6] = nil
+    end
+
+    for v8, v9 in pairs(p7.toolDescendantRemovingConns) do
+        v9:Disconnect()
+        p7.toolDescendantRemovingConns[v8] = nil
+    end
+end
+
+t2.TeardownTransparency = TeardownTransparency
+
+local function SetupTransparency(p8, p9) -- line: 99
+    p8:TeardownTransparency()
+    if p8.descendantAddedConn then
+        p8.descendantAddedConn:disconnect()
+    end
+    local DescendantAdded = p9.DescendantAdded
+    p8.descendantAddedConn = DescendantAdded:Connect(function(p10) -- line: 103
+        -- upvalues: p8 (copy), p9 (copy)
+        if p8:IsValidPartToModify(p10) then
+            p8.cachedParts[p10] = true
+            p8.transparencyDirty = true
+        elseif p10:IsA("Tool") then
+            if p8.toolDescendantAddedConns[p10] then
+                p8.toolDescendantAddedConns[p10]:Disconnect()
+            end
+            p8.toolDescendantAddedConns[p10] = p10.DescendantAdded:Connect(function(p11) -- line: 111
+                -- upvalues: p8 (copy)
+                p8.cachedParts[p11] = nil
+                if p11:IsA("BasePart") or p11:IsA("Decal") then
+                    p11.LocalTransparencyModifier = 0
+                end
+            end)
+            if p8.toolDescendantRemovingConns[p10] then
+                p8.toolDescendantRemovingConns[p10]:disconnect()
+            end
+            p8.toolDescendantRemovingConns[p10] = p10.DescendantRemoving:Connect(function(p12) -- line: 119
+                -- upvalues: p8 (copy), p9 (copy)
+                wait()
+                if p9 and p12 and p12:IsDescendantOf(p9) and p8:IsValidPartToModify(p12) then
+                    p8.cachedParts[p12] = true
+                    p8.transparencyDirty = true
+                end
+            end)
+        end
+    end)
+    if p8.descendantRemovingConn then
+        p8.descendantRemovingConn:disconnect()
+    end
+    local DescendantRemoving = p9.DescendantRemoving
+    p8.descendantRemovingConn = DescendantRemoving:connect(function(p13) -- line: 131
+        -- upvalues: p8 (copy)
+        if p8.cachedParts[p13] then
+            p8.cachedParts[p13] = nil
+            p13.LocalTransparencyModifier = 0
+        end
+    end)
+    p8:CachePartsRecursive(p9)
+end
+
+t2.SetupTransparency = SetupTransparency
+
+local function Enable(p14, p15) -- line: 142
+    if p14.enabled ~= p15 then
+        p14.enabled = p15
+    end
+end
+
+t2.Enable = Enable
+
+local function SetSubject(p16, p17) -- line: 148
+    local Parent
+    if p17 then
+        if p17:IsA("Humanoid") then
+            Parent = p17.Parent
+        end
+        if p17:IsA("VehicleSeat") and p17.Occupant then
+            Parent = p17.Occupant.Parent
+        end
+    end
+    if Parent then
+        p16:SetupTransparency(Parent)
+    else
+        p16:TeardownTransparency()
+    end
+end
+
+t2.SetSubject = SetSubject
+
+function t2.Update(p18, p19) -- line: 163
+    -- upvalues: VRService (copy), v1 (copy)
+    local CurrentCamera = workspace.CurrentCamera
+    if CurrentCamera and p18.enabled then
+        local magnitude = (CurrentCamera.Focus.p - CurrentCamera.CoordinateFrame.p).magnitude
+        local v10 = magnitude < 2 and 1 - (magnitude - 0.5) / 1.5 or 0
+        if v10 < 0.5 then
+            v10 = 0
+        end
+        if p18.lastTransparency and v10 < 1 and p18.lastTransparency < 0.95 then
+            local v11 = v10 - p18.lastTransparency
+            local v12 = 2.8 * p19
+            local v13 = -v12
+            local v14 = math.clamp(v11, v13, v12)
+            v10 = p18.lastTransparency + v14
+        else
+            p18.transparencyDirty = true
+        end
+        local v15 = v1.Round(v10, 2)
+        local v16 = math.clamp(v15, 0, 1)
+        if p18.transparencyDirty or not (p18.lastTransparency == v16) then
+            for v17, _ in pairs(p18.cachedParts) do
+                if VRService.VREnabled and VRService.AvatarGestures then
+                    local t4 = {}
+                    t4[Enum.AccessoryType.Hat] = true
+                    t4[Enum.AccessoryType.Hair] = true
+                    t4[Enum.AccessoryType.Face] = true
+                    t4[Enum.AccessoryType.Eyebrow] = true
+                    t4[Enum.AccessoryType.Eyelash] = true
+                    if v17.Parent:IsA("Accessory") and t4[v17.Parent.AccessoryType] or v17.Name == "Head" then
+                        v17.LocalTransparencyModifier = v16
+                    else
+                        v17.LocalTransparencyModifier = 0
+                    end
+                else
+                    v17.LocalTransparencyModifier = v16
+                end
+            end
+
+            p18.transparencyDirty = false
+            p18.lastTransparency = v16
+        end
+    end
+end
+
+return t2

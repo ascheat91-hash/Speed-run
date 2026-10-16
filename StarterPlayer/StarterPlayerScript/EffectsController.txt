@@ -1,0 +1,82 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.EffectsController
+-- Took 1.64s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local Effects = ReplicatedStorage:WaitForChild("Assets"):WaitForChild("Effects")
+local PlayEffect = ReplicatedStorage.Remotes.PlayEffect
+local PlaySound = ReplicatedStorage.Remotes.PlaySound
+local PlaySoundClient = ReplicatedStorage.Events.PlaySoundClient
+local SettingsStatus = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SettingsStatus")
+local v1 = false
+local SoundService = game:GetService("SoundService")
+
+local function PlayVisualEffect(p1, p2) -- line: 15
+    -- upvalues: Effects (copy)
+    local v2 = Effects:FindFirstChild(p1)
+    if v2 and p2 then
+        local HumanoidRootPart = p2:FindFirstChild("HumanoidRootPart")
+        if HumanoidRootPart then
+            local v3 = v2:Clone()
+            v3.Parent = HumanoidRootPart
+            task.delay(1, function() -- line: 29
+                -- upvalues: v3 (copy)
+                if v3.Parent then
+                    for _, v4 in ipairs(v3:GetDescendants()) do
+                        if v4:IsA("ParticleEmitter") then
+                            v4.Enabled = false
+                        end
+                    end
+                end
+            end)
+            task.delay(5, function() -- line: 40
+                -- upvalues: v3 (copy)
+                if v3 then
+                    v3:Destroy()
+                end
+            end)
+        end
+    end
+end
+
+local function PlaySoundEffect(p3) -- line: 47
+    -- upvalues: SoundService (copy)
+    local v5 = SoundService:WaitForChild("EffectsGroup", 1)
+    if v5 then
+        local v6 = v5:FindFirstChild(p3)
+        if v6 then
+            local v7 = v6:Clone()
+            v7.Parent = SoundService
+            v7:Play()
+            local Ended = v7.Ended
+            Ended:Connect(function() -- line: 60
+                -- upvalues: v7 (copy)
+                v7:Destroy()
+            end)
+        end
+    end
+end
+
+PlayEffect.OnClientEvent:Connect(function(p4, p5) -- line: 66
+    -- upvalues: PlayVisualEffect (copy)
+    PlayVisualEffect(p4, p5)
+end)
+PlaySound.OnClientEvent:Connect(function(p6) -- line: 70
+    -- upvalues: v1 (ref), PlaySoundEffect (copy)
+    if v1 then
+        PlaySoundEffect(p6)
+    end
+end)
+PlaySoundClient.Event:Connect(function(p7) -- line: 76
+    -- upvalues: v1 (ref), PlaySoundEffect (copy)
+    if v1 then
+        PlaySoundEffect(p7)
+    end
+end)
+SettingsStatus.OnClientEvent:Connect(function(p8) -- line: 82
+    -- upvalues: v1 (ref)
+    v1 = p8.SFX
+end)

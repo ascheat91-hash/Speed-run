@@ -1,0 +1,107 @@
+-- Script Path: game:GetService("StarterPlayer").StarterCharacterScripts["StepTracker.client"]
+-- Took 1.68s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local LocalPlayer = game.Players.LocalPlayer
+local GlobalSettings = require(game.ReplicatedStorage.Configs.GlobalSettings)
+local StepDistance = GlobalSettings.StepDistance
+local UpdateRate = GlobalSettings.UpdateRate
+local v1 = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = v1:WaitForChild("HumanoidRootPart")
+local v2 = RaycastParams.new()
+
+v2.FilterDescendantsInstances = { v1 }
+v2.FilterType = Enum.RaycastFilterType.Exclude
+
+local v3 = false
+
+local function checkGround() -- line: 16
+    -- upvalues: HumanoidRootPart (copy), v2 (copy)
+    local v4 = workspace:Raycast(HumanoidRootPart.Position, Vector3.new(0, -60, 0), v2)
+    local v5, Value
+    if v4 then
+        local Instance = v4.Instance
+        if Instance.Name == "Road" then
+            local RoadID = Instance:FindFirstChild("RoadID")
+            if RoadID and RoadID:IsA("StringValue") then
+                v5, Value = true, RoadID.Value
+            else
+                v5 = false
+            end
+        else
+            v5 = false
+        end
+    else
+        v5 = false
+    end
+    return v5, Value
+end
+
+local function setupCharacter(p1) -- line: 41
+    -- upvalues: v3 (ref), StepDistance (copy), UpdateRate (copy), HumanoidRootPart (copy), v2 (copy)
+    local Humanoid = p1:WaitForChild("Humanoid")
+    local HumanoidRootPart2 = p1:WaitForChild("HumanoidRootPart")
+    Humanoid:WaitForChild("Animator")
+    local Position = HumanoidRootPart2.Position
+    local v6 = true
+    Humanoid.Died:Connect(function() -- line: 51
+        -- upvalues: v6 (ref)
+        v6 = false
+    end)
+    local n1 = 0
+    local n2 = 0
+    while v6 do
+        task.wait(UpdateRate)
+        if Humanoid.Health <= 0 then
+            break
+        end
+        local v7 = workspace:Raycast(HumanoidRootPart.Position, Vector3.new(0, -60, 0), v2)
+        local v8, Value
+        if v7 then
+            local Instance = v7.Instance
+            if Instance.Name == "Road" then
+                local RoadID = Instance:FindFirstChild("RoadID")
+                if RoadID and RoadID:IsA("StringValue") then
+                    v8, Value = true, RoadID.Value
+                else
+                    v8 = false
+                end
+            else
+                v8 = false
+            end
+        else
+            v8 = false
+        end
+        if v8 then
+            n2 += Humanoid.WalkSpeed * UpdateRate
+            if StepDistance <= n2 or not v3 then
+                local v9 = n2 / StepDistance
+                local v10 = math.floor(v9)
+                n2 -= v10 * StepDistance
+                game.ReplicatedStorage.Remotes.StepTaken:FireServer(v10, true, Value)
+                v3 = true
+            end
+        else
+            local Position2 = HumanoidRootPart2.Position
+            local v11 = Position2.X - Position.X
+            local v12 = Position2.Z - Position.Z
+            n1 += Vector3.new(v11, 0, v12).Magnitude
+            if StepDistance <= n1 or v3 then
+                local v13 = n1 / StepDistance
+                local v14 = math.floor(v13)
+                n1 -= v14 * StepDistance
+                game.ReplicatedStorage.Remotes.StepTaken:FireServer(v14, false)
+                v3 = false
+            end
+            Position = Position2
+        end
+    end
+end
+
+if LocalPlayer.Character then
+    game.ReplicatedStorage.Remotes.StepTaken:FireServer(0)
+    task.spawn(setupCharacter, LocalPlayer.Character)
+end
+LocalPlayer.CharacterAdded:Connect(setupCharacter)

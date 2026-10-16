@@ -1,0 +1,128 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.CameraModule.Poppercam
+-- Took 1.48s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local CommonUtils = script.Parent.Parent:WaitForChild("CommonUtils")
+local v1 = require(CommonUtils:WaitForChild("FlagUtil"))
+local v2 = require(script.Parent:WaitForChild("ZoomController"))
+local UserFixCameraFPError = v1.getUserFlag("UserFixCameraFPError")
+local t1 = {}
+
+t1.__index = t1
+
+local v3 = CFrame.new()
+
+local function cframeToAxis(p1) -- line: 17
+    local v4, v5 = p1:ToAxisAngle()
+    return v4 * v5
+end
+
+local function axisToCFrame(p2) -- line: 22
+    -- upvalues: v3 (copy)
+    local Magnitude = p2.Magnitude
+    if Magnitude > 0.00001 then
+        return CFrame.fromAxisAngle(p2, Magnitude)
+    end
+    return v3
+end
+
+local function extractRotation(p3) -- line: 30
+    local _, _, _, v6, v7, v8, v9, v10, v11, v12, v13, v14 = p3:GetComponents()
+    return CFrame.new(0, 0, 0, v6, v7, v8, v9, v10, v11, v12, v13, v14)
+end
+
+function t1.new() -- line: 35
+    -- upvalues: t1 (copy)
+    local t2 = { lastCFrame = nil }
+    return (setmetatable(t2, t1))
+end
+
+function t1.Step(p4, p5, p6) -- line: 41
+    -- upvalues: v3 (copy)
+    local v15 = p4.lastCFrame or p6
+    p4.lastCFrame = p6
+    local Position = p6.Position
+    local _, _, _, v16, v17, v18, v19, v20, v21, v22, v23, v24 = p6:GetComponents()
+    local v25 = CFrame.new(0, 0, 0, v16, v17, v18, v19, v20, v21, v22, v23, v24)
+    local p = v15.p
+    local _, _, _, v26, v27, v28, v29, v30, v31, v32, v33, v34 = v15:GetComponents()
+    local v35 = CFrame.new(0, 0, 0, v26, v27, v28, v29, v30, v31, v32, v33, v34)
+    local v36 = (Position - p) / p5
+    local v37, v38 = (v25 * v35:inverse()):ToAxisAngle()
+    local v39 = v37 * v38 / p5
+    return {
+        extrapolate = function(p7) -- extrapolate | line: 56
+            -- upvalues: Position (copy), v25 (copy), v36 (copy), v39 (copy), v3 (copy)
+            local v40 = v36 * p7 + Position
+            local v41 = v39 * p7
+            local Magnitude = v41.Magnitude
+            local v42
+            if Magnitude > 0.00001 then
+                v42 = CFrame.fromAxisAngle(v41, Magnitude)
+            else
+                v42 = v3
+            end
+            return v42 * v25 + v40
+        end,
+        posVelocity = v36,
+        rotVelocity = v39
+    }
+end
+
+local function Reset(p8) -- line: 69
+    p8.lastCFrame = nil
+end
+
+t1.Reset = Reset
+
+local v43 = require(script.Parent:WaitForChild("BaseOcclusion"))
+local t3 = {}
+local v44 = setmetatable(t3, v43)
+
+v44.__index = v44
+
+function v44.new() -- line: 79
+    -- upvalues: t1 (copy), v43 (copy), v44 (copy)
+    local v45 = v43.new()
+    local v46 = setmetatable(v45, v44)
+    v46.focusExtrapolator = t1.new()
+    return v46
+end
+
+local function GetOcclusionMode(_) -- line: 85
+    return Enum.DevCameraOcclusionMode.Zoom
+end
+
+v44.GetOcclusionMode = GetOcclusionMode
+
+local function Enable(p10, _) -- line: 89
+    p10.focusExtrapolator:Reset()
+end
+
+v44.Enable = Enable
+
+function v44.Update(p12, p13, p14, p15, _) -- line: 93
+    -- upvalues: v2 (copy), UserFixCameraFPError (copy)
+    local v47 = if UserFixCameraFPError then CFrame.lookAlong(p15.p, -p14.LookVector) * CFrame.new(0, 0, 0, -1, 0, 0, 0, 1, 0, 0, 0, -1) else CFrame.new(p15.p, p14.p) * CFrame.new(0, 0, 0, -1, 0, 0, 0, 1, 0, 0, 0, -1)
+    local v48 = p12.focusExtrapolator:Step(p13, v47)
+    local v49 = v2.Update(p13, v47, v48)
+    return v47 * CFrame.new(0, 0, v49), p15
+end
+
+local function CharacterAdded(_, _, _) -- line: 117
+end
+
+v44.CharacterAdded = CharacterAdded
+
+local function CharacterRemoving(_, _, _) -- line: 121
+end
+
+v44.CharacterRemoving = CharacterRemoving
+
+local function OnCameraSubjectChanged(_, _) -- line: 124
+end
+
+v44.OnCameraSubjectChanged = OnCameraSubjectChanged
+return v44

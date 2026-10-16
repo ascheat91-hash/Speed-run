@@ -1,0 +1,209 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.CameraModule.MouseLockController
+-- Took 0.84s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local CommonUtils = script.Parent.Parent:WaitForChild("CommonUtils")
+local v1 = require(CommonUtils:WaitForChild("FlagUtil"))
+local Value = Enum.ContextActionPriority.Medium.Value
+local Players = game:GetService("Players")
+local ContextActionService = game:GetService("ContextActionService")
+local UserInputService = game:GetService("UserInputService")
+local GameSettings = UserSettings().GameSettings
+local v2 = require(script.Parent:WaitForChild("CameraUtils"))
+local UserFixStuckShiftLock = v1.getUserFlag("UserFixStuckShiftLock")
+local t1 = {}
+
+t1.__index = t1
+
+function t1.new() -- line: 33
+    -- upvalues: Players (copy), UserInputService (copy), GameSettings (copy), t1 (copy)
+    local t2 = {}
+    local v3 = setmetatable(t2, t1)
+    v3.isMouseLocked = false
+    v3.savedMouseCursor = nil
+    v3.boundKeys = {
+        Enum.KeyCode.LeftShift,
+        Enum.KeyCode.RightShift
+    }
+    v3.mouseLockToggledEvent = Instance.new("BindableEvent")
+    local BoundKeys = script:FindFirstChild("BoundKeys")
+    local StringValue, v4
+    if BoundKeys then
+        if BoundKeys:IsA("StringValue") then
+            StringValue = BoundKeys
+            v4 = true
+        else
+            BoundKeys:Destroy()
+            v4 = false
+        end
+    else
+        v4 = false
+    end
+    if not v4 then
+        StringValue = Instance.new("StringValue")
+        assert(StringValue, "")
+        StringValue.Name = "BoundKeys"
+        StringValue.Value = "LeftShift,RightShift"
+        StringValue.Parent = script
+    end
+    if StringValue then
+        StringValue.Changed:Connect(function(p1) -- line: 58
+            -- upvalues: v3 (copy)
+            v3:OnBoundKeysObjectChanged(p1)
+        end)
+        v3:OnBoundKeysObjectChanged(StringValue.Value)
+    end
+    local Changed = GameSettings.Changed
+    Changed:Connect(function(p2) -- line: 65
+        -- upvalues: v3 (copy)
+        if p2 == "ControlMode" or p2 == "ComputerMovementMode" then
+            v3:UpdateMouseLockAvailability()
+        end
+    end)
+    Players.LocalPlayer:GetPropertyChangedSignal("DevEnableMouseLock"):Connect(function() -- line: 72
+        -- upvalues: v3 (copy)
+        v3:UpdateMouseLockAvailability()
+    end)
+    Players.LocalPlayer:GetPropertyChangedSignal("DevComputerMovementMode"):Connect(function() -- line: 77
+        -- upvalues: v3 (copy)
+        v3:UpdateMouseLockAvailability()
+    end)
+    UserInputService:GetPropertyChangedSignal("PreferredInput"):Connect(function() -- line: 81
+        -- upvalues: v3 (copy)
+        v3:UpdateMouseLockAvailability()
+    end)
+    v3:UpdateMouseLockAvailability()
+    return v3
+end
+
+local function GetIsMouseLocked(p3) -- line: 90
+    return p3.isMouseLocked
+end
+
+t1.GetIsMouseLocked = GetIsMouseLocked
+
+local function GetBindableToggleEvent(p4) -- line: 94
+    return p4.mouseLockToggledEvent.Event
+end
+
+t1.GetBindableToggleEvent = GetBindableToggleEvent
+
+local function GetMouseLockOffset(_) -- line: 98
+    return (Vector3.new(1.75, 0, 0))
+end
+
+t1.GetMouseLockOffset = GetMouseLockOffset
+
+function t1.UpdateMouseLockAvailability(p6) -- line: 102
+    -- upvalues: Players (copy), UserInputService (copy), GameSettings (copy)
+    local DevEnableMouseLock = Players.LocalPlayer.DevEnableMouseLock
+    local v5 = Players.LocalPlayer.DevComputerMovementMode == Enum.DevComputerMovementMode.Scriptable
+    local v6 = GameSettings.ControlMode == Enum.ControlMode.MouseLockSwitch
+    local v7 = GameSettings.ComputerMovementMode == Enum.ComputerMovementMode.ClickToMove
+    v6 = UserInputService.PreferredInput == Enum.PreferredInput.KeyboardAndMouse and DevEnableMouseLock and v6 and not v7 and not v5
+    if v6 ~= p6.enabled then
+        p6:EnableMouseLock(v6)
+    end
+end
+
+local function OnBoundKeysObjectChanged(p7, p8) -- line: 115
+    p7.boundKeys = {}
+
+    for v8 in string.gmatch(p8, "[^%s,]+") do
+        for _, v9 in pairs(Enum.KeyCode:GetEnumItems()) do
+            if v8 == v9.Name then
+                p7.boundKeys[#p7.boundKeys + 1] = v9
+                break
+            end
+        end
+    end
+
+    p7:UnbindContextActions()
+    p7:BindContextActions()
+end
+
+t1.OnBoundKeysObjectChanged = OnBoundKeysObjectChanged
+
+function t1.OnMouseLockToggled(p9) -- line: 130
+    -- upvalues: v2 (copy)
+    p9.isMouseLocked = not p9.isMouseLocked
+    if p9.isMouseLocked then
+        local CursorImage = script:FindFirstChild("CursorImage")
+        if CursorImage and CursorImage:IsA("StringValue") and CursorImage.Value then
+            v2.setMouseIconOverride(CursorImage.Value)
+        else
+            if CursorImage then
+                CursorImage:Destroy()
+            end
+            local StringValue = Instance.new("StringValue")
+            assert(StringValue, "")
+            StringValue.Name = "CursorImage"
+            StringValue.Value = "rbxasset://textures/MouseLockedCursor.png"
+            StringValue.Parent = script
+            v2.setMouseIconOverride("rbxasset://textures/MouseLockedCursor.png")
+        end
+    else
+        v2.restoreMouseIcon()
+    end
+    p9.mouseLockToggledEvent:Fire()
+end
+
+local function DoMouseLockSwitch(p10, _, p12, _) -- line: 155
+    if p12 == Enum.UserInputState.Begin then
+        p10:OnMouseLockToggled()
+        return Enum.ContextActionResult.Sink
+    end
+    return Enum.ContextActionResult.Pass
+end
+
+t1.DoMouseLockSwitch = DoMouseLockSwitch
+
+function t1.BindContextActions(p14) -- line: 163
+    -- upvalues: Value (copy), ContextActionService (copy)
+    local function v10(p15, p16, p17) -- line: 164
+        -- upvalues: p14 (copy)
+        return p14:DoMouseLockSwitch(p15, p16, p17)
+    end
+
+    local boundKeys = p14.boundKeys
+    ContextActionService:BindActionAtPriority("MouseLockSwitchAction", v10, false, Value, unpack(boundKeys))
+end
+
+function t1.UnbindContextActions(_) -- line: 169
+    -- upvalues: ContextActionService (copy)
+    ContextActionService:UnbindAction("MouseLockSwitchAction")
+end
+
+local function IsMouseLocked(p19) -- line: 173
+    return p19.enabled and p19.isMouseLocked
+end
+
+t1.IsMouseLocked = IsMouseLocked
+
+function t1.EnableMouseLock(p20, p21) -- line: 177
+    -- upvalues: v2 (copy), UserFixStuckShiftLock (copy)
+    if p21 ~= p20.enabled then
+        p20.enabled = p21
+        if p20.enabled then
+            p20:BindContextActions()
+        else
+            v2.restoreMouseIcon()
+            p20:UnbindContextActions()
+            if UserFixStuckShiftLock then
+                if p20.isMouseLocked then
+                    p20.isMouseLocked = false
+                    p20.mouseLockToggledEvent:Fire()
+                end
+            else
+                if p20.isMouseLocked then
+                    p20.mouseLockToggledEvent:Fire()
+                end
+                p20.isMouseLocked = false
+            end
+        end
+    end
+end
+
+return t1

@@ -1,0 +1,60 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.MusicController
+-- Took 2.44s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local SettingsStatus = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SettingsStatus")
+local SoundService = game:GetService("SoundService")
+local t1 = {}
+
+for _, v1 in ipairs(SoundService.MusicGroup:GetChildren()) do
+    if v1:IsA("Sound") then
+        table.insert(t1, v1)
+    end
+end
+
+local n1 = 1
+local v2 = false
+local n2 = 0
+
+local function musicLoop(p1) -- line: 17
+    -- upvalues: n1 (ref), v2 (ref), n2 (ref), t1 (copy)
+    while v2 do
+        if p1 == n2 and #t1 > 0 then
+            local v3 = t1[n1]
+            v3.Volume = 0.15
+            v3:Play()
+            v3.Ended:Wait()
+            if v2 and p1 == n2 then
+                do
+                    local v4 = n1
+                    n1 = v4 % #t1 + 1
+                end
+                continue
+            end
+        end
+        break
+    end
+end
+
+SettingsStatus.OnClientEvent:Connect(function(p2) -- line: 53
+    -- upvalues: n1 (ref), v2 (ref), n2 (ref), t1 (copy), musicLoop (copy)
+    if p2.Music then
+        if not v2 then
+            v2 = true
+            n2 += 1
+            local v5 = n2
+            task.spawn(function() -- line: 39
+                -- upvalues: v5 (copy), musicLoop (copy)
+                musicLoop(v5)
+            end)
+        end
+    else
+        v2 = false
+        n2 += 1
+        if t1[n1] then
+            t1[n1]:Stop()
+        end
+    end
+end)

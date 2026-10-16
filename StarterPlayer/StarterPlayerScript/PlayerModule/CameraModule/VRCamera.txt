@@ -1,0 +1,405 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.CameraModule.VRCamera
+-- Took 1.05s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local Players = game:GetService("Players")
+local VRService = game:GetService("VRService")
+UserSettings():GetService("UserGameSettings")
+require(script.Parent:WaitForChild("CameraInput"))
+require(script.Parent:WaitForChild("CameraUtils"))
+local v1 = require(script.Parent:WaitForChild("VRCameraTeleportDetector"))
+local CommonUtils = script.Parent.Parent:WaitForChild("CommonUtils")
+local v2 = require(CommonUtils:WaitForChild("FlagUtil"))
+local UserVRRecenterOnExternalTeleport = v2.getUserFlag("UserVRRecenterOnExternalTeleport")
+local UserFixVRImmersionAutoRotate = v2.getUserFlag("UserFixVRImmersionAutoRotate")
+local v3 = require(script.Parent:WaitForChild("VRBaseCamera"))
+local t1 = {}
+local v4 = setmetatable(t1, v3)
+
+v4.__index = v4
+
+function v4.new() -- line: 34
+    -- upvalues: Players (copy), v3 (copy), v4 (copy)
+    local v5 = v3.new()
+    local v6 = setmetatable(v5, v4)
+    v6.lastUpdate = tick()
+    v6.focusOffset = CFrame.new()
+    v6:Reset()
+    v6.controlModule = require(Players.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule"))
+    v6.savedAutoRotate = true
+    v6.autoRotateOverridden = false
+    return v6
+end
+
+function v4.Reset(p1) -- line: 48
+    -- upvalues: v3 (copy)
+    p1.needsReset = true
+    p1.needsBlackout = true
+    p1.motionDetTime = 0
+    p1.blackOutTimer = 0
+    p1.lastCameraResetPosition = nil
+    v3.Reset(p1)
+end
+
+function v4.Update(p2, p3) -- line: 57
+    -- upvalues: Players (copy), VRService (copy)
+    local CurrentCamera = workspace.CurrentCamera
+    local CFrame = CurrentCamera.CFrame
+    local Focus = CurrentCamera.Focus
+    local LocalPlayer = Players.LocalPlayer
+    p2:GetHumanoid()
+    local CameraSubject = CurrentCamera.CameraSubject
+    if p2.lastUpdate == nil or p3 > 1 then
+        p2.lastCameraTransform = nil
+    end
+    p2:UpdateFadeFromBlack(p3)
+    local lastSubjectPosition = p2.lastSubjectPosition
+    local v7 = p2:GetSubjectPosition()
+    if p2.needsBlackout then
+        p2:StartFadeFromBlack()
+        local v8 = math.clamp(p3, 0.0001, 0.1)
+        p2.blackOutTimer += v8
+        if p2.blackOutTimer > 0.1 and game:IsLoaded() then
+            p2.needsBlackout = false
+            p2.needsReset = true
+        end
+    end
+    local v9, v10
+    if v7 and LocalPlayer and CurrentCamera then
+        local v11 = p2:GetVRFocus(v7, p3)
+        local v12, v13
+        if p2:IsInFirstPerson() then
+            if VRService.AvatarGestures then
+                v12, v13 = p2:UpdateImmersionCamera(p3, CFrame, v11, lastSubjectPosition, v7)
+            else
+                v12, v13 = p2:UpdateFirstPersonTransform(p3, CFrame, v11, lastSubjectPosition, v7)
+            end
+        elseif VRService.ThirdPersonFollowCamEnabled then
+            v12, v13 = p2:UpdateThirdPersonFollowTransform(p3, CFrame, v11, lastSubjectPosition, v7)
+        else
+            v12, v13 = p2:UpdateThirdPersonComfortTransform(p3, CFrame, v11, lastSubjectPosition, v7)
+        end
+        p2.lastCameraTransform = v12
+        p2.lastCameraFocus = v13
+        v9 = v12
+        v10 = v13
+    else
+        v9 = CFrame
+        v10 = Focus
+    end
+    p2.lastUpdate = tick()
+    return v9, v10
+end
+
+local function GetAvatarFeetWorldYValue(_) -- line: 118
+    local CameraSubject = workspace.CurrentCamera.CameraSubject
+    if CameraSubject then
+        if not (CameraSubject:IsA("Humanoid") and CameraSubject.RootPart) then
+            return nil
+        end
+        local RootPart = CameraSubject.RootPart
+        return RootPart.Position.Y - RootPart.Size.Y / 2 - CameraSubject.HipHeight
+    end
+    return nil
+end
+
+v4.GetAvatarFeetWorldYValue = GetAvatarFeetWorldYValue
+
+local function UpdateFirstPersonTransform(p5, p6, _, p8, _, _) -- line: 133
+    if p5.needsReset then
+        p5:StartFadeFromBlack()
+        p5.needsReset = false
+    end
+    local p = p8.p
+    local v14 = p5:GetCameraLookVector()
+    local X = v14.X
+    local Z = v14.Z
+    local Unit = Vector3.new(X, 0, Z).Unit
+    local v15 = p5:getRotation(p6)
+    local v16 = p5:CalculateNewLookVectorFromArg(Unit, Vector2.new(v15, 0))
+    return CFrame.new(p - 0.5 * v16, p), p8
+end
+
+v4.UpdateFirstPersonTransform = UpdateFirstPersonTransform
+
+function v4.UpdateImmersionCamera(p11, p12, _, _, p15, p16) -- line: 153
+    -- upvalues: Players (copy), VRService (copy), v1 (copy), UserVRRecenterOnExternalTeleport (copy), UserFixVRImmersionAutoRotate (copy)
+    local v17 = p11:GetSubjectCFrame()
+    local CurrentCamera = workspace.CurrentCamera
+    local Character = Players.LocalPlayer.Character
+    local v18 = p11:GetHumanoid()
+    if v18 then
+        local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+        if HumanoidRootPart then
+            local v19
+            if UserVRRecenterOnExternalTeleport then
+                if p15 then
+                    local v20 = p16.X - p15.X
+                    local v21 = p16.Z - p15.Z
+                    v19 = Vector3.new(v20, 0, v21).Magnitude
+                else
+                    v19 = 0
+                end
+            end
+            p11.characterOrientation = HumanoidRootPart:FindFirstChild("CharacterAlignOrientation")
+            if not p11.characterOrientation then
+                local RootAttachment = HumanoidRootPart:FindFirstChild("RootAttachment")
+                if not RootAttachment then
+                    return
+                end
+                p11.characterOrientation = Instance.new("AlignOrientation")
+                p11.characterOrientation.Name = "CharacterAlignOrientation"
+                p11.characterOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+                p11.characterOrientation.Attachment0 = RootAttachment
+                p11.characterOrientation.RigidityEnabled = true
+                p11.characterOrientation.Parent = HumanoidRootPart
+            end
+            if p11.characterOrientation.Enabled == false then
+                p11.characterOrientation.Enabled = true
+            end
+            if p11.needsReset then
+                p11.needsReset = false
+                if UserFixVRImmersionAutoRotate then
+                    p11:updateImmersionAutoRotate()
+                else
+                    p11.savedAutoRotate = v18.AutoRotate
+                    v18.AutoRotate = false
+                end
+                if UserVRRecenterOnExternalTeleport then
+                    VRService:RecenterUserHeadCFrame()
+                    p11.lastTeleportRecenter = tick()
+                end
+                p11:StartFadeFromBlack()
+            elseif not v18.Sit then
+                local v22 = p11.controlModule:GetEstimatedVRTorsoFrame()
+                p11.characterOrientation.CFrame = CurrentCamera.CFrame * v22
+                if p11.controlModule.inputMoveVector.Magnitude > 0 then
+                    p11.motionDetTime = 0.1
+                end
+                if p11.controlModule.inputMoveVector.Magnitude > 0 or p11.motionDetTime > 0 then
+                    p11.motionDetTime -= p12
+                    local v23 = VRService:GetUserCFrame(Enum.UserCFrame.Head)
+                    local v24 = v23.Rotation + v23.Position * CurrentCamera.HeadScale
+                    local HumanoidRootPart = Character.HumanoidRootPart
+                    local v25 = -0.7 * HumanoidRootPart.Size.Y / 2
+                    local v26 = CurrentCamera.CFrame * v24 * CFrame.new(0, v25, 0)
+                    local LookVector = HumanoidRootPart.CFrame.LookVector
+                    local X = LookVector.X
+                    local Z = LookVector.Z
+                    local v27 = p16 - (v26 - Vector3.new(X, 0, Z).Unit * HumanoidRootPart.Size.Y * 0.125).Position + CurrentCamera.CFrame.Position
+                    local X2 = v27.X
+                    local Y = p16.Y
+                    local Z2 = v27.Z
+                    local v28 = Vector3.new(X2, Y, Z2)
+                    v17 = CurrentCamera.CFrame.Rotation + v28
+                elseif not (UserVRRecenterOnExternalTeleport and v1.shouldRecenter(p11.prevSubjStep, v19, p11.lastTeleportRecenter, tick())) then
+                    local Rotation = CurrentCamera.CFrame.Rotation
+                    local X = CurrentCamera.CFrame.Position.X
+                    local Y = p16.Y
+                    local Z = CurrentCamera.CFrame.Position.Z
+                    v17 = Rotation + Vector3.new(X, Y, Z)
+                else
+                    local v29 = VRService:GetUserCFrame(Enum.UserCFrame.Head)
+                    local v30 = v29.Rotation + v29.Position * CurrentCamera.HeadScale
+                    local HumanoidRootPart = Character.HumanoidRootPart
+                    local v31 = -0.7 * HumanoidRootPart.Size.Y / 2
+                    local v32 = CurrentCamera.CFrame * v30 * CFrame.new(0, v31, 0)
+                    local LookVector = HumanoidRootPart.CFrame.LookVector
+                    local X = LookVector.X
+                    local Z = LookVector.Z
+                    local v33 = p16 - (v32 - Vector3.new(X, 0, Z).Unit * HumanoidRootPart.Size.Y * 0.125).Position + CurrentCamera.CFrame.Position
+                    local X2 = v33.X
+                    local Y = p16.Y
+                    local Z2 = v33.Z
+                    local v34 = Vector3.new(X2, Y, Z2)
+                    v17 = CurrentCamera.CFrame.Rotation + v34
+                    VRService:RecenterUserHeadCFrame()
+                    p11:StartFadeFromBlack()
+                    p11.lastTeleportRecenter = tick()
+                end
+                local v35 = p11:getRotation(p12)
+                if math.abs(v35) > 0 then
+                    local v36 = VRService:GetUserCFrame(Enum.UserCFrame.Head)
+                    local v37 = v36.Rotation + v36.Position * CurrentCamera.HeadScale
+                    local v38 = v17 * v37
+                    local v39 = CFrame.new(v38.Position)
+                    local Angles = CFrame.Angles
+                    local v40 = v35 * 90
+                    v17 = v39 * Angles(0, -math.rad(v40), 0) * v38.Rotation * v37:Inverse()
+                end
+            end
+            if UserVRRecenterOnExternalTeleport then
+                p11.prevSubjStep = v19
+            end
+            return v17, v17 * CFrame.new(0, 0, -0.5)
+        end
+    end
+    return CurrentCamera.CFrame, CurrentCamera.Focus
+end
+
+function v4.UpdateThirdPersonComfortTransform(p17, p18, p19, p20, p21, p22) -- line: 305
+    -- upvalues: Players (copy), VRService (copy)
+    local v41 = p17:GetCameraToSubjectDistance()
+    if v41 < 0.5 then
+        v41 = 0.5
+    end
+    local v42
+    if p21 == nil or p17.lastCameraFocus == nil then
+        v42 = p19
+    else
+        local LocalPlayer = Players.LocalPlayer
+        local v43 = p21 - p22
+        local v44 = p17.controlModule:GetMoveVector()
+        local v45 = if v43.magnitude > 0.01 then true else v44.magnitude > 0.01
+        if v45 then
+            p17.motionDetTime = 0.1
+        end
+        p17.motionDetTime -= p18
+        if p17.motionDetTime > 0 then
+            v45 = true
+        end
+        if not v45 or p17.needsReset then
+            local v46 = if p17.lastCameraResetPosition == nil then true else (p22 - p17.lastCameraResetPosition).Magnitude > 1
+            local v47 = p17:getRotation(p18)
+            local v48
+            if math.abs(v47) > 0 then
+                local v49 = p20:ToObjectSpace(p19)
+                v48 = p20 * CFrame.Angles(0, -v47, 0) * v49
+            else
+                v48 = p19
+            end
+            if p17.VRCameraFocusFrozen and v46 or p17.needsReset then
+                VRService:RecenterUserHeadCFrame()
+                p17.VRCameraFocusFrozen = false
+                p17.needsReset = false
+                p17.lastCameraResetPosition = p22
+                p17:ResetZoom()
+                p17:StartFadeFromBlack()
+                local v50 = p17:GetHumanoid()
+                local lookVector = v50.Torso and v50.Torso.CFrame.lookVector or Vector3.new(1, 0, 0)
+                local X = lookVector.X
+                local Z = lookVector.Z
+                local v51 = Vector3.new(X, 0, Z)
+                local v52 = p20.Position - v51 * v41
+                local X2 = p20.Position.X
+                local Y = v52.Y
+                local Z2 = p20.Position.Z
+                local v53 = Vector3.new(X2, Y, Z2)
+                v42 = CFrame.new(v52, v53)
+            else
+                v42 = v48
+            end
+        else
+            local lastCameraFocus = p17.lastCameraFocus
+            p17.VRCameraFocusFrozen = true
+            return p19, lastCameraFocus
+        end
+    end
+    return v42, p20
+end
+
+function v4.UpdateThirdPersonFollowTransform(p23, p24, _, _, p27, p28) -- line: 372
+    -- upvalues: Players (copy), VRService (copy)
+    local CurrentCamera = workspace.CurrentCamera
+    local v54 = p23:GetCameraToSubjectDistance()
+    local v55 = p23:GetVRFocus(p28, p24)
+    if p23.needsReset then
+        p23.needsReset = false
+        VRService:RecenterUserHeadCFrame()
+        p23:ResetZoom()
+        p23:StartFadeFromBlack()
+    end
+    if p23.recentered then
+        local v56 = p23:GetSubjectCFrame()
+        if v56 then
+            local v57 = v55 * v56.Rotation * CFrame.new(0, 0, v54)
+            p23.focusOffset = v55:ToObjectSpace(v57)
+            p23.recentered = false
+            return v57, v55
+        end
+        return CurrentCamera.CFrame, CurrentCamera.Focus
+    end
+    local v58 = v55:ToWorldSpace(p23.focusOffset)
+    local LocalPlayer = Players.LocalPlayer
+    local v59 = p27 - p28
+    local controlModule = p23.controlModule
+    local v60 = controlModule:GetMoveVector()
+    if v59.magnitude > 0.01 or v60.magnitude > 0 then
+        local v61 = controlModule:GetEstimatedVRTorsoFrame()
+        local v62 = v61.Rotation + v61.Position * CurrentCamera.HeadScale
+        local v63 = CurrentCamera.CFrame * v62
+        local LookVector = v63.LookVector
+        local X = LookVector.X
+        local Z = LookVector.Z
+        local v64 = Vector3.new(X, 0, Z).Unit * v54
+        local v65 = v55.Position - v64
+        v58 = v58:Lerp(CFrame.new(CurrentCamera.CFrame.Position + v65 - v63.Position) * v58.Rotation, 0.01)
+    end
+    local v66 = p23:getRotation(p24)
+    if math.abs(v66) > 0 then
+        local v67 = v55:ToObjectSpace(v58)
+        v58 = v55 * CFrame.Angles(0, -v66, 0) * v67
+    end
+    p23.focusOffset = v55:ToObjectSpace(v58)
+    return v58, v58 * CFrame.new(0, 0, -v54)
+end
+
+function v4.updateImmersionAutoRotate(p29) -- line: 447
+    -- upvalues: VRService (copy)
+    local v68 = p29:GetHumanoid()
+    if v68 then
+        if p29:IsInFirstPerson() and VRService.AvatarGestures then
+            if not p29.autoRotateOverridden then
+                p29.savedAutoRotate = v68.AutoRotate
+                p29.autoRotateOverridden = true
+            end
+            v68.AutoRotate = false
+        elseif p29.autoRotateOverridden then
+            v68.AutoRotate = p29.savedAutoRotate
+            p29.autoRotateOverridden = false
+        end
+    end
+end
+
+function v4.OnEnabledChanged(p30) -- line: 467
+    -- upvalues: VRService (copy), UserFixVRImmersionAutoRotate (copy), v3 (copy)
+    v3.OnEnabledChanged(p30)
+    if UserFixVRImmersionAutoRotate then
+        if p30.enabled then
+            if not p30.avatarGesturesChangedConn then
+                local AvatarGestures = VRService:GetPropertyChangedSignal("AvatarGestures")
+                p30.avatarGesturesChangedConn = AvatarGestures:Connect(function() -- line: 476
+                    -- upvalues: p30 (copy)
+                    p30:updateImmersionAutoRotate()
+                end)
+            end
+        elseif p30.avatarGesturesChangedConn then
+            p30.avatarGesturesChangedConn:Disconnect()
+            p30.avatarGesturesChangedConn = nil
+        end
+    end
+end
+
+function v4.LeaveFirstPerson(p31) -- line: 486
+    -- upvalues: UserFixVRImmersionAutoRotate (copy), v3 (copy)
+    v3.LeaveFirstPerson(p31)
+    p31.needsReset = true
+    if p31.VRBlur then
+        p31.VRBlur.Visible = false
+    end
+    if p31.characterOrientation then
+        p31.characterOrientation.Enabled = false
+    end
+    if UserFixVRImmersionAutoRotate then
+        p31:updateImmersionAutoRotate()
+    else
+        local v69 = p31:GetHumanoid()
+        if v69 then
+            v69.AutoRotate = p31.savedAutoRotate
+        end
+    end
+end
+
+return v4

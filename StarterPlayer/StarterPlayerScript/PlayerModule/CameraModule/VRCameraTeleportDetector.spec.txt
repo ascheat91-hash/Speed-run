@@ -1,0 +1,63 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.CameraModule["VRCameraTeleportDetector.spec"]
+-- Took 0.73s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local CorePackages = game:GetService("CorePackages")
+local JestGlobals = require(CorePackages.Packages.Dev.JestGlobals)
+local describe = JestGlobals.describe
+local expect = JestGlobals.expect
+local it = JestGlobals.it
+local VRCameraTeleportDetector = require(script.Parent.VRCameraTeleportDetector)
+local shouldRecenter = VRCameraTeleportDetector.shouldRecenter
+local JUMP_STUDS = VRCameraTeleportDetector.JUMP_STUDS
+local SETTLED_STUDS = VRCameraTeleportDetector.SETTLED_STUDS
+local DEBOUNCE_SECONDS = VRCameraTeleportDetector.DEBOUNCE_SECONDS
+describe("VRCameraTeleportDetector.shouldRecenter", function() -- line: 14
+    -- upvalues: expect (copy), it (copy), shouldRecenter (copy), JUMP_STUDS (copy), SETTLED_STUDS (copy), DEBOUNCE_SECONDS (copy)
+    it("fires on a discrete jump from rest (no prior step, never recentered)", function() -- line: 15
+        -- upvalues: expect (copy), shouldRecenter (copy), JUMP_STUDS (copy)
+        expect(shouldRecenter(nil, JUMP_STUDS + 10, nil, 100)).toBe(true)
+    end)
+    it("fires on a discrete jump preceded by a near-still frame", function() -- line: 19
+        -- upvalues: expect (copy), shouldRecenter (copy), JUMP_STUDS (copy), SETTLED_STUDS (copy)
+        expect(shouldRecenter(SETTLED_STUDS - 0.5, JUMP_STUDS + 10, nil, 100)).toBe(true)
+    end)
+    it("does not fire for sub-threshold motion", function() -- line: 23
+        -- upvalues: expect (copy), shouldRecenter (copy), JUMP_STUDS (copy)
+        expect(shouldRecenter(0, JUMP_STUDS - 0.1, nil, 100)).toBe(false)
+        expect(shouldRecenter(0, 0, nil, 100)).toBe(false)
+    end)
+    it("does not fire when the previous frame was already moving (continuous motion)", function() -- line: 28
+        -- upvalues: expect (copy), shouldRecenter (copy), JUMP_STUDS (copy), SETTLED_STUDS (copy)
+        expect(shouldRecenter(SETTLED_STUDS + 0.1, JUMP_STUDS + 10, nil, 100)).toBe(false)
+    end)
+    it("does not fire within the debounce interval", function() -- line: 33
+        -- upvalues: expect (copy), shouldRecenter (copy), JUMP_STUDS (copy), DEBOUNCE_SECONDS (copy)
+        expect(shouldRecenter(nil, JUMP_STUDS + 10, 100, 100 + DEBOUNCE_SECONDS - 0.01)).toBe(false)
+    end)
+    it("fires again once the debounce interval has elapsed", function() -- line: 38
+        -- upvalues: expect (copy), shouldRecenter (copy), JUMP_STUDS (copy), DEBOUNCE_SECONDS (copy)
+        expect(shouldRecenter(nil, JUMP_STUDS + 10, 100, 100 + DEBOUNCE_SECONDS + 0.01)).toBe(true)
+    end)
+    it("does not retrigger every frame under continuous per-frame CFrame writes (oscillation guard)", function() -- line: 43
+        -- upvalues: expect (copy), shouldRecenter (copy), JUMP_STUDS (copy)
+        local v1 = JUMP_STUDS + 10
+        local n1 = 0
+        local v2
+        local v3
+        local n2 = 0
+
+        for _ = 1, 120 do
+            if shouldRecenter(v2, v1, v3, n1) then
+                v3 = n1
+                n2 += 1
+            end
+            n1 += 0.016666666666666666
+            v2 = v1
+        end
+
+        expect(n2).toBe(1)
+    end)
+end)

@@ -1,0 +1,219 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.ControlModule.TouchThumbstick
+-- Took 0.88s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+game:GetService("Players")
+local GuiService = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
+UserSettings():GetService("UserGameSettings")
+local CommonUtils = script.Parent.Parent:WaitForChild("CommonUtils")
+local UserAllowAbilityControls = require(CommonUtils:WaitForChild("FlagUtil")).getUserFlag("UserAllowAbilityControls")
+local v1
+
+if UserAllowAbilityControls then
+    v1 = require(script.Parent:WaitForChild("AvatarAbilitiesInterface"))
+end
+local v2 = require(script.Parent:WaitForChild("BaseCharacterController"))
+local t1 = {}
+local v3 = setmetatable(t1, v2)
+
+v3.__index = v3
+
+function v3.new() -- line: 29
+    -- upvalues: v2 (copy), v3 (copy)
+    local v4 = v2.new()
+    local v5 = setmetatable(v4, v3)
+    v5.isFollowStick = false
+    v5.thumbstickFrame = nil
+    v5.moveTouchObject = nil
+    v5.onTouchMovedConn = nil
+    v5.onTouchEndedConn = nil
+    v5.screenPos = nil
+    v5.stickImage = nil
+    v5.thumbstickSize = nil
+    return v5
+end
+
+local function Enable(p1, p2, p3) -- line: 44
+    if p2 == nil then
+        return false
+    end
+    local v6 = not not p2
+    if p1.enabled == v6 then
+        return true
+    end
+    p1.moveVector = Vector3.new(0, 0, 0)
+    p1.isJumping = false
+    if v6 then
+        if not p1.thumbstickFrame then
+            p1:Create(p3)
+        end
+        p1.thumbstickFrame.Visible = true
+    else
+        p1.thumbstickFrame.Visible = false
+        p1:OnInputEnded()
+    end
+    p1.enabled = v6
+end
+
+v3.Enable = Enable
+
+local function OnInputEnded(p4) -- line: 65
+    p4.thumbstickFrame.Position = p4.screenPos
+    p4.stickImage.Position = UDim2.new(0, p4.thumbstickFrame.Size.X.Offset / 2 - p4.thumbstickSize / 4, 0, p4.thumbstickFrame.Size.Y.Offset / 2 - p4.thumbstickSize / 4)
+    p4.moveVector = Vector3.new(0, 0, 0)
+    p4.isJumping = false
+    p4.thumbstickFrame.Position = p4.screenPos
+    p4.moveTouchObject = nil
+end
+
+v3.OnInputEnded = OnInputEnded
+
+function v3.Create(p5, p6) -- line: 74
+    -- upvalues: v1 (ref), GuiService (copy), UserInputService (copy), UserAllowAbilityControls (copy)
+    if p5.thumbstickFrame then
+        p5.thumbstickFrame:Destroy()
+        p5.thumbstickFrame = nil
+        if p5.onTouchMovedConn then
+            p5.onTouchMovedConn:Disconnect()
+            p5.onTouchMovedConn = nil
+        end
+        if p5.onTouchEndedConn then
+            p5.onTouchEndedConn:Disconnect()
+            p5.onTouchEndedConn = nil
+        end
+        if p5.absoluteSizeChangedConn then
+            p5.absoluteSizeChangedConn:Disconnect()
+            p5.absoluteSizeChangedConn = nil
+        end
+        if UserAllowAbilityControls and p5.avatarAbilitiesEnabledChangedConn then
+            p5.avatarAbilitiesEnabledChangedConn:Disconnect()
+            p5.avatarAbilitiesEnabledChangedConn = nil
+        end
+    end
+    p5.thumbstickFrame = Instance.new("Frame")
+    p5.thumbstickFrame.Name = "ThumbstickFrame"
+    p5.thumbstickFrame.Active = true
+    p5.thumbstickFrame.Visible = false
+    p5.thumbstickFrame.BackgroundTransparency = 1
+    local ImageLabel = Instance.new("ImageLabel")
+    ImageLabel.Name = "OuterImage"
+    ImageLabel.Image = "rbxasset://textures/ui/TouchControlsSheet.png"
+    ImageLabel.ImageRectOffset = Vector2.new()
+    ImageLabel.ImageRectSize = Vector2.new(220, 220)
+    ImageLabel.BackgroundTransparency = 1
+    ImageLabel.Position = UDim2.new(0, 0, 0, 0)
+    p5.stickImage = Instance.new("ImageLabel")
+    p5.stickImage.Name = "StickImage"
+    p5.stickImage.Image = "rbxasset://textures/ui/TouchControlsSheet.png"
+    p5.stickImage.ImageRectOffset = Vector2.new(220, 0)
+    p5.stickImage.ImageRectSize = Vector2.new(111, 111)
+    p5.stickImage.BackgroundTransparency = 1
+    p5.stickImage.ZIndex = 2
+
+    local function ResizeThumbstick() -- line: 120
+        -- upvalues: p5 (copy), p6 (copy), ImageLabel (copy), v1 (ref), UserAllowAbilityControls (copy)
+        local X = p6.AbsoluteSize.X
+        local Y = p6.AbsoluteSize.Y
+        local v7 = math.min(X, Y) <= 500
+        if UserAllowAbilityControls and v1.isEnabled() then
+            local v8, v9, v10
+            if v7 then
+                v10 = 64
+                v9 = 64
+                v8 = 72
+            else
+                v10 = 100
+                v9 = 112
+                v8 = 120
+            end
+            p5.thumbstickSize = v8
+            p5.screenPos = UDim2.new(0, v10, 1, -p5.thumbstickSize - v9)
+        else
+            local v11 = if v7 then 70 else 120
+            p5.thumbstickSize = v11
+            local v12 = v7 and UDim2.new(0, p5.thumbstickSize / 2 - 10, 1, -p5.thumbstickSize - 20) or UDim2.new(0, p5.thumbstickSize / 2, 1, -p5.thumbstickSize * 1.75)
+            p5.screenPos = v12
+        end
+        p5.thumbstickFrame.Size = UDim2.new(0, p5.thumbstickSize, 0, p5.thumbstickSize)
+        p5.thumbstickFrame.Position = p5.screenPos
+        ImageLabel.Size = UDim2.new(0, p5.thumbstickSize, 0, p5.thumbstickSize)
+        p5.stickImage.Size = UDim2.new(0, p5.thumbstickSize / 2, 0, p5.thumbstickSize / 2)
+        p5.stickImage.Position = UDim2.new(0, p5.thumbstickSize / 2 - p5.thumbstickSize / 4, 0, p5.thumbstickSize / 2 - p5.thumbstickSize / 4)
+    end
+
+    ResizeThumbstick()
+    p5.absoluteSizeChangedConn = p6:GetPropertyChangedSignal("AbsoluteSize"):Connect(ResizeThumbstick)
+    if UserAllowAbilityControls then
+        p5.avatarAbilitiesEnabledChangedConn = v1.GetEnabledChangedSignal():Connect(ResizeThumbstick)
+    end
+    ImageLabel.Parent = p5.thumbstickFrame
+    p5.stickImage.Parent = p5.thumbstickFrame
+    local v13
+
+    local function MoveStick(p7) -- line: 172
+        -- upvalues: v13 (ref), p5 (copy)
+        local v14 = Vector2.new(p7.X - v13.X, p7.Y - v13.Y)
+        local magnitude = v14.magnitude
+        local v15 = p5.thumbstickFrame.AbsoluteSize.X / 2
+        if not (p5.isFollowStick and v15 < magnitude) then
+            local v16 = math.min(magnitude, v15)
+            v14 = v14.unit * v16
+        else
+            local v17 = v14.unit * v15
+            p5.thumbstickFrame.Position = UDim2.new(0, p7.X - p5.thumbstickFrame.AbsoluteSize.X / 2 - v17.X, 0, p7.Y - p5.thumbstickFrame.AbsoluteSize.Y / 2 - v17.Y)
+        end
+        p5.stickImage.Position = UDim2.new(0, v14.X + p5.stickImage.AbsoluteSize.X / 2, 0, v14.Y + p5.stickImage.AbsoluteSize.Y / 2)
+    end
+
+    p5.thumbstickFrame.InputBegan:Connect(function(p8) -- line: 189
+        -- upvalues: v13 (ref), p5 (copy)
+        if not p5.moveTouchObject and p8.UserInputType == Enum.UserInputType.Touch and p8.UserInputState == Enum.UserInputState.Begin then
+            p5.moveTouchObject = p8
+            p5.thumbstickFrame.Position = UDim2.new(0, p8.Position.X - p5.thumbstickFrame.Size.X.Offset / 2, 0, p8.Position.Y - p5.thumbstickFrame.Size.Y.Offset / 2)
+            v13 = Vector2.new(p5.thumbstickFrame.AbsolutePosition.X + p5.thumbstickFrame.AbsoluteSize.X / 2, p5.thumbstickFrame.AbsolutePosition.Y + p5.thumbstickFrame.AbsoluteSize.Y / 2)
+            Vector2.new(p8.Position.X - v13.X, p8.Position.Y - v13.Y)
+        end
+    end)
+    local TouchMoved = UserInputService.TouchMoved
+    p5.onTouchMovedConn = TouchMoved:Connect(function(p9, _) -- line: 204
+        -- upvalues: v13 (ref), p5 (copy), MoveStick (copy)
+        if p9 == p5.moveTouchObject then
+            v13 = Vector2.new(p5.thumbstickFrame.AbsolutePosition.X + p5.thumbstickFrame.AbsoluteSize.X / 2, p5.thumbstickFrame.AbsolutePosition.Y + p5.thumbstickFrame.AbsoluteSize.Y / 2)
+            local v18 = Vector2.new(p9.Position.X - v13.X, p9.Position.Y - v13.Y) / (p5.thumbstickSize / 2)
+            local magnitude = v18.magnitude
+            local v19
+            if magnitude < 0.05 then
+                v19 = Vector3.new()
+            else
+                local unit = v18.unit
+                local v20 = (magnitude - 0.05) / 0.95
+                local v21 = unit * math.min(1, v20)
+                local X = v21.X
+                local Y = v21.Y
+                v19 = Vector3.new(X, 0, Y)
+            end
+            p5.moveVector = v19
+            MoveStick(p9.Position)
+        end
+    end)
+    local TouchEnded = UserInputService.TouchEnded
+    p5.onTouchEndedConn = TouchEnded:Connect(function(p11, _) -- line: 214
+        -- upvalues: p5 (copy)
+        if p11 == p5.moveTouchObject then
+            p5:OnInputEnded()
+        end
+    end)
+    local MenuOpened = GuiService.MenuOpened
+    MenuOpened:Connect(function() -- line: 220
+        -- upvalues: p5 (copy)
+        if p5.moveTouchObject then
+            p5:OnInputEnded()
+        end
+    end)
+    p5.thumbstickFrame.Parent = p6
+end
+
+return v3

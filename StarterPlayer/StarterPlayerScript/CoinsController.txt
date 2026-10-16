@@ -1,0 +1,104 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.CoinsController
+-- Took 1.35s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local t1 = {}
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local CoinModel = ReplicatedStorage.Assets.Models.CoinModel
+local CoinsData = require(ReplicatedStorage.Configs.CoinsData)
+local simpleParticleBurst = require(ReplicatedStorage.Utility.simpleParticleBurst)
+local CoinCollect = ReplicatedStorage.Remotes.CoinCollect
+local CoinCollectedRequest = ReplicatedStorage.Remotes.CoinCollectedRequest
+local PickupParticles = ReplicatedStorage.Assets.Effects.PickupParticles
+local PlaySoundClient = ReplicatedStorage.Events.PlaySoundClient
+local CoinSpawns = workspace:WaitForChild("CoinSpawns")
+
+t1[1] = {}
+
+local t2 = {}
+local LocalPlayer = Players.LocalPlayer
+local addCoin = (function(p1)
+    local function addCoin(p2) -- line: 19
+        -- upvalues: p1 (copy), CoinModel (copy), CoinsData (copy), simpleParticleBurst (copy), CoinCollect (copy), PickupParticles (copy), PlaySoundClient (copy), t2 (copy), LocalPlayer (copy)
+        local v1 = CoinModel:Clone()
+        v1.Parent = p2
+        v1.Position = p2.Position
+        local Name = p2.Name
+        v1.Color = CoinsData[tonumber(Name)].Color
+        t2[v1] = {
+            angle = 0,
+            pos = v1.Position,
+            offset = math.random() * 10
+        }
+        local v2
+        local Touched = p2.Touched
+        v2 = Touched:Connect(((function(p3)
+            return function(p4) -- line: 32
+                -- upvalues: p3 (copy), v2 (ref), p2 (copy), v1 (copy), simpleParticleBurst (copy), CoinCollect (copy), PickupParticles (copy), PlaySoundClient (copy), LocalPlayer (copy)
+                local Character = LocalPlayer.Character
+                if Character and p4:IsDescendantOf(Character) then
+                    local v3 = p3[1]
+                    local Name = p2.Name
+                    if not v3[tostring(Name)] then
+                        local Name = p2.Name
+                        CoinCollect:FireServer((tonumber(Name)))
+                        PlaySoundClient:Fire("sound_coin")
+                    end
+                    simpleParticleBurst(PickupParticles, v1.CFrame)
+                    v1:Destroy()
+                    local v4 = v2
+                    v4:Disconnect()
+                end
+            end
+        end)(p1)))
+    end
+
+    return addCoin
+end)(t1)
+local spawnCoins = (function(p5)
+    local function spawnCoins() -- line: 54
+        -- upvalues: p5 (copy), CoinSpawns (copy), addCoin (copy)
+        for _, v5 in pairs(CoinSpawns:GetChildren()) do
+            if not (#v5:GetChildren() > 0) and not p5[1][v5.Name] then
+                addCoin(v5)
+            end
+        end
+
+        CoinSpawns.ChildAdded:Connect(((function(p6)
+            return function(p7) -- line: 68
+                -- upvalues: p6 (copy), addCoin (copy)
+                if not (#p7:GetChildren() > 0) and not p6[1][p7.Name] then
+                    addCoin(p7)
+                end
+            end
+        end)(p5)))
+    end
+
+    return spawnCoins
+end)(t1)
+RunService.RenderStepped:Connect(function(p8) -- line: 82
+    -- upvalues: t2 (copy)
+    for v6, v7 in pairs(t2) do
+        if v6 and v6.Parent then
+            v7.angle += p8 * 4
+            local v8 = (tick() + v7.offset) * 3
+            local v9 = math.sin(v8) * 1
+            v6.CFrame = CFrame.new(v7.pos + Vector3.new(0, v9, 0)) * CFrame.Angles(0, v7.angle, 0)
+        end
+    end
+end)
+CoinCollectedRequest.OnClientEvent:Connect(((function(p9)
+    return function(p10, p11) -- line: 100
+        -- upvalues: p9 (copy), spawnCoins (copy)
+        p9[1] = p10
+        if p11 then
+            spawnCoins()
+        end
+    end
+end)(t1)))
+task.wait("1.5")
+CoinCollectedRequest:FireServer()

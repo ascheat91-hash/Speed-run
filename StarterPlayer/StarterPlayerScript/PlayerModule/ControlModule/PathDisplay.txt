@@ -1,0 +1,153 @@
+-- Script Path: game:GetService("StarterPlayer").StarterPlayerScripts.PlayerModule.ControlModule.PathDisplay
+-- Took 0.64s to decompile.
+-- Executor: WRD (v2.0.0)
+
+-- https://lua.expert
+
+local t1 = {}
+local CommonUtils = script.Parent.Parent:WaitForChild("CommonUtils")
+local UserRaycastUpdateAPI2 = require(CommonUtils:WaitForChild("FlagUtil")).getUserFlag("UserRaycastUpdateAPI2")
+local v1 = RaycastParams.new()
+
+v1.FilterType = Enum.RaycastFilterType.Exclude
+
+local t2 = {
+    spacing = 8,
+    image = "rbxasset://textures/Cursors/Gamepad/Pointer.png",
+    imageSize = Vector2.new(2, 2)
+}
+
+t1[1] = {}
+
+local t3 = {}
+local Model = Instance.new("Model")
+
+Model.Name = "PathDisplayPoints"
+
+local Part = Instance.new("Part")
+
+Part.Anchored = true
+Part.CanCollide = false
+Part.Transparency = 1
+Part.Name = "PathDisplayAdornee"
+Part.CFrame = CFrame.new(0, 0, 0)
+Part.Parent = Model
+
+local t4 = {}
+local n1 = 30
+
+for i = 1, 30 do
+    local ImageHandleAdornment = Instance.new("ImageHandleAdornment")
+    ImageHandleAdornment.Archivable = false
+    ImageHandleAdornment.Adornee = Part
+    ImageHandleAdornment.Image = t2.image
+    ImageHandleAdornment.Size = t2.imageSize
+    t4[i] = ImageHandleAdornment
+end
+
+local function renderPoint(p1, _) -- line: 57
+    -- upvalues: n1 (ref), UserRaycastUpdateAPI2 (copy), v1 (copy), Model (copy), t4 (copy)
+    if n1 ~= 0 then
+        local v2 = t4[1]
+        if v2 then
+            local v3 = n1
+            t4[1] = t4[n1]
+            t4[v3] = nil
+            n1 -= 1
+        else
+            v2 = nil
+        end
+        if UserRaycastUpdateAPI2 then
+            v1.FilterDescendantsInstances = {
+                game.Players.LocalPlayer.Character,
+                workspace.CurrentCamera
+            }
+            local v4 = workspace:Raycast(p1 + Vector3.new(0, 2, 0), Vector3.new(0, -8, 0), v1)
+            if v4 then
+                v2.CFrame = CFrame.lookAlong(v4.Position, v4.Normal)
+                v2.Parent = Model
+                return v2
+            end
+        else
+            local v5 = Ray.new(p1 + Vector3.new(0, 2, 0), (Vector3.new(0, -8, 0)))
+            local v6, v7, v8 = workspace:FindPartOnRayWithIgnoreList(v5, {
+                game.Players.LocalPlayer.Character,
+                workspace.CurrentCamera
+            })
+            if v6 then
+                v2.CFrame = CFrame.new(v7, v7 + v8)
+                v2.Parent = Model
+                return v2
+            end
+        end
+    end
+    return nil
+end
+
+t2.setCurrentPoints = (function(p3)
+    local function setCurrentPoints(p4) -- line: 89
+        -- upvalues: p3 (copy)
+        if typeof(p4) == "table" then
+            p3[1] = p4
+        else
+            p3[1] = {}
+        end
+    end
+
+    return setCurrentPoints
+end)(t1)
+
+function t2.clearRenderedPath() -- line: 97
+    -- upvalues: t3 (ref), n1 (ref), Model (copy), t4 (copy)
+    for _, v9 in ipairs(t3) do
+        v9.Parent = nil
+        n1 += 1
+        t4[n1] = v9
+    end
+
+    t3 = {}
+    Model.Parent = nil
+end
+
+t2.renderPath = (function(p5)
+    local function renderPath() -- line: 106
+        -- upvalues: p5 (copy), t3 (ref), t2 (copy), Model (copy), renderPoint (copy)
+        t2.clearRenderedPath()
+        local v10 = p5[1]
+        if not v10 or #p5[1] == 0 then
+            return
+        end
+        local v11 = #p5[1]
+        local v12 = p5[1][v11]
+        local t5 = t3
+        t5[1] = renderPoint(v12, true)
+        if t3[1] then
+            local n2 = 0
+            while true do
+                local v13 = p5[1][v11]
+                local v14 = p5[1][v11 - 1]
+                if v11 < 2 then
+                    break
+                end
+                local v15 = v14 - v13
+                local magnitude = v15.magnitude
+                if magnitude < n2 then
+                    n2 -= magnitude
+                    v11 -= 1
+                else
+                    local v16 = v13 + v15.unit * n2
+                    local v17 = renderPoint(v16, false)
+                    if v17 then
+                        local t6 = t3
+                        t6[#t3 + 1] = v17
+                    end
+                    n2 += t2.spacing
+                end
+            end
+            Model.Parent = workspace.CurrentCamera
+        end
+    end
+
+    return renderPath
+end)(t1)
+return t2
